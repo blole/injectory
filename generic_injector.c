@@ -190,11 +190,11 @@ InjectLibraryW(
 				L"  ExitCodeThread:\t0x%p\n",
 				NtFileNameThis,
 				dwProcessId,
-				lpInjectedModule,
-				(DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint,
-				nt_header.OptionalHeader.SizeOfImage,
-				nt_header.OptionalHeader.CheckSum,
-				dwExitCode);
+				(void*)lpInjectedModule,
+				(void*)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
+				(void*)nt_header.OptionalHeader.SizeOfImage,
+				(void*)nt_header.OptionalHeader.CheckSum,
+				(void*)dwExitCode);
 		}
 
 		if(dwExitCode == 0)
@@ -367,7 +367,7 @@ EjectLibrary(
 			"  ExitCodeThread:\t\t0x%p\n",
 			lpModule,
 			dwProcessId,
-			dwExitCode);
+			(void*)dwExitCode);
 
 		bRet = TRUE;
 	}

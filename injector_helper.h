@@ -82,7 +82,7 @@ IsProcess64(
 
 #define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
 
-typedef enum _THREAD_INFORMATION_CLASS
+enum THREAD_INFORMATION_CLASS
 {
 	ThreadBasicInformation,
 	ThreadTimes,
@@ -102,6 +102,6 @@ typedef enum _THREAD_INFORMATION_CLASS
 	ThreadSetTlsArrayAddress,
 	ThreadIsIoPending,
 	ThreadHideFromDebugger
-} THREAD_INFORMATION_CLASS, *PTHREAD_INFORMATION_CLASS;
+};
 
 #endif // _INJECTOR_HELPER_H

@@ -39,7 +39,7 @@
 #include "generic_injector.h"
 #include "manualmap.h"
 
-#define VERSION "4.1"
+#define VERSION "4.2"
 #define CMP_OPT(option) compare_option(option, argv[argv_index])
 
 const char *option_list[] =
@@ -56,7 +56,7 @@ const char *option_list[] =
 	"--launch"		,
 	"--args"		,
 	"--mm"			,
-	"--listmodules"
+	"--listmodules"	,
 };
 
 enum option_enum
