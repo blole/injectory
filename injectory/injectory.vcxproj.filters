@@ -46,9 +46,6 @@
     <ClInclude Include="injector_helper.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="main.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="manualmap.hpp">
       <Filter>headers</Filter>
     </ClInclude>

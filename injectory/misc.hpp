@@ -22,16 +22,20 @@
 #include <stdio.h>
 
 #if defined(_WIN64)
-
-#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 0
-#define PRINT_TARGET_PROC_ERROR(pid) printf("Error: x64 loader doesn't support x86 processes (%X).\n", pid)
-
+	#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 0
+	#define BIT_ERROR_STRING	"injectory.x64 doesn't support x86 processes"
 #elif defined(_WIN32)
-
-#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 1
-#define PRINT_TARGET_PROC_ERROR(pid) printf("Error: x86 loader doesn't support x64 processes (%X).\n", pid)
-
+	#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 1
+	#define BIT_ERROR_STRING	"injectory.x86 doesn't support x64 processes"
 #endif
+
+#define PRINT_TARGET_PROC_ERROR(pid) printf("error: " BIT_ERROR_STRING " (%d).\n", pid)
+#define THROW_IF_TARGET_BIT_MISMATCH(pid)												\
+{																						\
+	if (CHECK_TARGET_PROC(pid))															\
+		throw std::runtime_error(BIT_ERROR_STRING " (" + std::to_string(pid) + ")");	\
+}
+
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
 #define PRINT_ERROR_MSGW(...) { wprintf(L"Error: [@%s] ", __FUNCTIONW__); PrintErrorMsgW(__VA_ARGS__); }

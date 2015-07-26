@@ -587,7 +587,7 @@ BOOL
 InjectLibraryOnStartupA(
 	LPCSTR lpLibPath,
 	LPCSTR lpProcPath,
-	LPSTR lpProcArgs,
+	LPCSTR lpProcArgs,
 	BOOL bWaitForInputIdle
 	)
 {

@@ -134,7 +134,6 @@
     <ClInclude Include="findproc.hpp" />
     <ClInclude Include="generic_injector.hpp" />
     <ClInclude Include="injector_helper.hpp" />
-    <ClInclude Include="main.hpp" />
     <ClInclude Include="manualmap.hpp" />
     <ClInclude Include="misc.hpp" />
   </ItemGroup>
