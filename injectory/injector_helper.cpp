@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#include "injector_helper.h"
+#include "injector_helper.hpp"
 
 FARPROC
 GetRemoteProcAddress(
@@ -230,7 +230,7 @@ HideThreadFromDebugger(
 
 	LONG (NTAPI *_NtSetInformationThread)(
 		HANDLE ThreadHandle,
-		THREAD_INFORMATION_CLASS ThreadInformationClass,
+		MY_THREAD_INFORMATION_CLASS ThreadInformationClass,
 		PVOID ThreadInformation,
 		ULONG ThreadInformationLength) = 0;
 
@@ -244,7 +244,7 @@ HideThreadFromDebugger(
 		}
 
 		_NtSetInformationThread =
-			(LONG (NTAPI*)(HANDLE, THREAD_INFORMATION_CLASS, PVOID, ULONG))
+			(LONG (NTAPI*)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG))
 			GetProcAddress(hNtDll, "NtSetInformationThread");
 		if(_NtSetInformationThread == 0)
 		{
@@ -485,14 +485,14 @@ ListModules(
 					{
 						if(sizeof(PVOID) == 4)
 						{
-							wprintf(L"%p\t %p\t  %s\n",
+							wprintf(L"%p\t %x\t  %s\n",
 								mem_basic_info.AllocationBase,
 								nt_header.OptionalHeader.SizeOfImage,
 								ntMappedFileName);
 						}
 						else if(sizeof(PVOID) == 8)
 						{
-							wprintf(L"%p %p %s\n",
+							wprintf(L"%p %x %s\n",
 								mem_basic_info.AllocationBase,
 								nt_header.OptionalHeader.SizeOfImage,
 								ntMappedFileName);

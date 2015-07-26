@@ -11,48 +11,48 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="misc.c">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="generic_injector.c">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="injector_helper.c">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="findproc.c">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="manualmap.cpp">
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="dllmain_remotecall.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="injector_helper.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="generic_injector.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="findproc.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="misc.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="misc.h">
+    <ClInclude Include="dllmain_remotecall.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="findproc.h">
+    <ClInclude Include="findproc.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="generic_injector.h">
+    <ClInclude Include="generic_injector.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="injector_helper.h">
+    <ClInclude Include="injector_helper.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="main.h">
+    <ClInclude Include="main.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="manualmap.h">
+    <ClInclude Include="manualmap.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="dllmain_remotecall.h">
+    <ClInclude Include="misc.hpp">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

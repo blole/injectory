@@ -22,8 +22,8 @@
 
 #include <Windows.h>
 
-#include "misc.h"
-#include "injector_helper.h"
+#include "misc.hpp"
+#include "injector_helper.hpp"
 
 // INFINITE can cause DeadLock if host process is in debug mode
 #define INJLIB_WAITTIMEOUT		INFINITE

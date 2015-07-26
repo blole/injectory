@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#include "manualmap.h"
+#include "manualmap.hpp"
 
 // Matt Pietrek's function
 PIMAGE_SECTION_HEADER GetEnclosingSectionHeader(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader)
@@ -505,15 +505,16 @@ MapRemoteModuleW(
 
 		bRet = TRUE;
 
-		wprintf(L"Successfully injected (%s | PID: %x):\n\n"
-			L"  AllocationBase:\t0x%p\n"
-			L"  EntryPoint:\t\t0x%p\n"
-			L"  SizeOfImage:\t\t0x%p\n"
-			L"  CheckSum:\t\t0x%p\n",
+		wprintf(
+			L"Successfully injected (%s | PID: %x):\n\n"
+			L"  AllocationBase: 0x%p\n"
+			L"  EntryPoint:     0x%p\n"
+			L"  SizeOfImage:    0x%x\n"
+			L"  CheckSum:       0x%x\n",
 			lpModulePath,
 			dwProcessId,
 			lpModuleBase,
-			(DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint,
+			(LPVOID)((DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
 			nt_header->OptionalHeader.SizeOfImage,
 			nt_header->OptionalHeader.CheckSum);
 	}

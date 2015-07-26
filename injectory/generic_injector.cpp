@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#include "generic_injector.h"
+#include "generic_injector.hpp"
 
 BOOL
 InjectLibraryW(
@@ -182,19 +182,20 @@ InjectLibraryW(
 				__leave;
 			}
 
-			wprintf(L"Successfully injected (%s | PID: %x):\n\n"
-				L"  AllocationBase:\t0x%p\n"
-				L"  EntryPoint:\t\t0x%p\n"
-				L"  SizeOfImage:\t\t0x%p\n"
-				L"  CheckSum:\t\t0x%p\n"
-				L"  ExitCodeThread:\t0x%p\n",
+			wprintf(
+				L"Successfully injected (%s | PID: %x):\n\n"
+				L"  AllocationBase: 0x%p\n"
+				L"  EntryPoint:     0x%p\n"
+				L"  SizeOfImage:    0x%x\n"
+				L"  CheckSum:       0x%x\n"
+				L"  ExitCodeThread: 0x%x\n",
 				NtFileNameThis,
 				dwProcessId,
-				(void*)lpInjectedModule,
-				(void*)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
-				(void*)nt_header.OptionalHeader.SizeOfImage,
-				(void*)nt_header.OptionalHeader.CheckSum,
-				(void*)dwExitCode);
+				lpInjectedModule,
+				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
+				nt_header.OptionalHeader.SizeOfImage,
+				nt_header.OptionalHeader.CheckSum,
+				dwExitCode);
 		}
 
 		if(dwExitCode == 0)
@@ -364,10 +365,10 @@ EjectLibrary(
 		}
 
 		printf("Successfully ejected (0x%p | PID: %x):\n\n"
-			"  ExitCodeThread:\t\t0x%p\n",
+			"  ExitCodeThread: 0x%x\n",
 			lpModule,
 			dwProcessId,
-			(void*)dwExitCode);
+			dwExitCode);
 
 		bRet = TRUE;
 	}

@@ -25,7 +25,7 @@
 
 #pragma comment(lib, "Psapi.lib")
 
-#include "misc.h"
+#include "misc.hpp"
 
 FARPROC
 GetRemoteProcAddress(
@@ -82,7 +82,7 @@ IsProcess64(
 
 #define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
 
-enum THREAD_INFORMATION_CLASS
+enum MY_THREAD_INFORMATION_CLASS
 {
 	ThreadBasicInformation,
 	ThreadTimes,

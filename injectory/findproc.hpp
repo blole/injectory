@@ -15,24 +15,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _DLLMAIN_REMOTECALL_H
-#define _DLLMAIN_REMOTECALL_H
+#ifndef _FINDPROC_H
+#define _FINDPROC_H
 
 #include <Windows.h>
 
-#include "misc.h"
-#include "generic_injector.h"
+#undef UNICODE
 
-typedef BOOL (__stdcall *DLLMAIN)(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+#include <TlHelp32.h>
 
-struct DLLMAINCALL
+#include "misc.hpp"
+#include "generic_injector.hpp"
+#include "manualmap.hpp"
+
+struct INJ_DATA
 {
-	DLLMAIN fpDllMain;
-	HMODULE hModule;
-	DWORD ul_reason_for_call;
-	LPVOID lpReserved;
+	BYTE mode;
+	LPCSTR name;
+	LPCSTR libpath;
+	LPVOID module_address;
+	BOOL inject;
+	BOOL mm;
 };
 
-BOOL RemoteDllMainCall(HANDLE hProcess, LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+BOOL InjectEjectToWindowTitleA(LPCSTR lpWindowName, LPCSTR lpLibPath, LPVOID lpModule, BOOL inject, BOOL mm);
+BOOL InjectEjectToWindowClassA(LPCSTR lpClassName, LPCSTR lpLibPath, LPVOID lpModule, BOOL inject, BOOL mm);
+BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpModule, BOOL inject, BOOL mm);
 
-#endif // _DLLMAIN_REMOTECALL_H
+#endif // _FINDPROC_H
