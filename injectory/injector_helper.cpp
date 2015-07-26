@@ -483,20 +483,10 @@ ListModules(
 						sizeof(IMAGE_NT_HEADERS), &NumBytesRead) &&
 						NumBytesRead == sizeof(IMAGE_NT_HEADERS))
 					{
-						if(sizeof(PVOID) == 4)
-						{
-							wprintf(L"%p\t %d\t  %s\n",
-								mem_basic_info.AllocationBase,
-								nt_header.OptionalHeader.SizeOfImage,
-								ntMappedFileName);
-						}
-						else if(sizeof(PVOID) == 8)
-						{
-							wprintf(L"%p %d %s\n",
-								mem_basic_info.AllocationBase,
-								nt_header.OptionalHeader.SizeOfImage,
-								ntMappedFileName);
-						}
+						wprintf(L"0x%p, %.1f kB, %s\n",
+							mem_basic_info.AllocationBase,
+							nt_header.OptionalHeader.SizeOfImage/1024.0,
+							ntMappedFileName);
 					}
 				}
 			}
