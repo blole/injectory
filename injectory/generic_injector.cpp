@@ -66,7 +66,7 @@ InjectLibraryW(
 			dwProcessId);
 		if(!hProcess)
 		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: 0x%X).", dwProcessId);
+			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
 			__leave;
 		}
 
@@ -85,7 +85,7 @@ InjectLibraryW(
 
 		if(ModuleInjectedW(hProcess, NtFileNameThis) != 0)
 		{
-			PRINT_ERROR_MSGW(L"Module (%s) already in process (PID: %x).", NtFileNameThis, dwProcessId);
+			PRINT_ERROR_MSGW(L"Module (%s) already in process (PID: %d).", NtFileNameThis, dwProcessId);
 			__leave;
 		}
 
@@ -183,12 +183,12 @@ InjectLibraryW(
 			}
 
 			wprintf(
-				L"Successfully injected (%s | PID: %x):\n\n"
+				L"Successfully injected (%s | PID: %d):\n\n"
 				L"  AllocationBase: 0x%p\n"
 				L"  EntryPoint:     0x%p\n"
-				L"  SizeOfImage:    0x%x\n"
-				L"  CheckSum:       0x%x\n"
-				L"  ExitCodeThread: 0x%x\n",
+				L"  SizeOfImage:      %d\n"
+				L"  CheckSum:       0x%08x\n"
+				L"  ExitCodeThread: 0x%08x\n",
 				NtFileNameThis,
 				dwProcessId,
 				lpInjectedModule,
@@ -305,7 +305,7 @@ EjectLibrary(
 			dwProcessId);
 		if(!hProcess)
 		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: 0x%X).", dwProcessId);
+			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
 			__leave;
 		}
 
@@ -364,8 +364,8 @@ EjectLibrary(
 			__leave;
 		}
 
-		printf("Successfully ejected (0x%p | PID: %x):\n\n"
-			"  ExitCodeThread: 0x%x\n",
+		printf("Successfully ejected (0x%p | PID: %d):\n\n"
+			"  ExitCodeThread: 0x%08x\n",
 			lpModule,
 			dwProcessId,
 			dwExitCode);
@@ -464,7 +464,7 @@ EjectLibraryW(
 					{
 						if(!EjectLibrary(dwProcessId, mem_basic_info.AllocationBase))
 						{
-							PRINT_ERROR_MSGA("Ejection failed. (AllocationBase: 0x%p | PID: %x)", mem_basic_info.AllocationBase, dwProcessId);
+							PRINT_ERROR_MSGA("Ejection failed. (AllocationBase: 0x%p | PID: %d)", mem_basic_info.AllocationBase, dwProcessId);
 						}
 					}
 				}

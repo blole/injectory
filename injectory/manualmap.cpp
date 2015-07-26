@@ -351,7 +351,7 @@ MapRemoteModuleW(
 			dwProcessId);
 		if(!hProcess)
 		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: 0x%X).", dwProcessId);
+			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
 			__leave;
 		}
 
@@ -506,11 +506,11 @@ MapRemoteModuleW(
 		bRet = TRUE;
 
 		wprintf(
-			L"Successfully injected (%s | PID: %x):\n\n"
+			L"Successfully injected (%s | PID: %d):\n\n"
 			L"  AllocationBase: 0x%p\n"
 			L"  EntryPoint:     0x%p\n"
-			L"  SizeOfImage:    0x%x\n"
-			L"  CheckSum:       0x%x\n",
+			L"  SizeOfImage:      %d\n"
+			L"  CheckSum:       0x%08x\n",
 			lpModulePath,
 			dwProcessId,
 			lpModuleBase,

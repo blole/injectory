@@ -434,7 +434,7 @@ ListModules(
 		dwProcessId);
 	if(!hProcess)
 	{
-		PRINT_ERROR_MSGA("Could not get handle to process (PID: 0x%X).", dwProcessId);
+		PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
 		return;
 	}
 
@@ -485,14 +485,14 @@ ListModules(
 					{
 						if(sizeof(PVOID) == 4)
 						{
-							wprintf(L"%p\t %x\t  %s\n",
+							wprintf(L"%p\t %d\t  %s\n",
 								mem_basic_info.AllocationBase,
 								nt_header.OptionalHeader.SizeOfImage,
 								ntMappedFileName);
 						}
 						else if(sizeof(PVOID) == 8)
 						{
-							wprintf(L"%p %x %s\n",
+							wprintf(L"%p %d %s\n",
 								mem_basic_info.AllocationBase,
 								nt_header.OptionalHeader.SizeOfImage,
 								ntMappedFileName);
@@ -577,7 +577,7 @@ IsProcess64(
 		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
 		if(!hProcess)
 		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: 0x%X).", dwProcessId);
+			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
 			return -1;
 		}
 

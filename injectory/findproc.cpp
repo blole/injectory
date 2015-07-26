@@ -49,7 +49,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 				{
 					if(!MapRemoteModuleA(dwPid, injdata.libpath))
 					{
-						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %x)\n",
+						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
 							dwPid);
 					}
 				}
@@ -98,7 +98,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 				{
 					if(!MapRemoteModuleA(dwPid, injdata.libpath))
 					{
-						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %x)\n",
+						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
 							dwPid);
 					}
 				}
@@ -190,7 +190,7 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 					{
 						if(!MapRemoteModuleA(pe32.th32ProcessID, lpLibPath))
 						{
-							PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %x)\n",
+							PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
 								pe32.th32ProcessID);
 						}
 					}
@@ -198,7 +198,7 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 					{
 						if(!InjectLibraryA(pe32.th32ProcessID, lpLibPath))
 						{
-							PRINT_ERROR_MSGA("Injection failed. (PID: %x)", pe32.th32ProcessID);
+							PRINT_ERROR_MSGA("Injection failed. (PID: %d)", pe32.th32ProcessID);
 						}
 					}
 				}
@@ -208,14 +208,14 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 					{
 						if(!EjectLibrary(pe32.th32ProcessID, lpModule))
 						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %x)", pe32.th32ProcessID);
+							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pe32.th32ProcessID);
 						}
 					}
 					else
 					{
 						if(!EjectLibraryA(pe32.th32ProcessID, lpLibPath))
 						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %x)", pe32.th32ProcessID);
+							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pe32.th32ProcessID);
 						}
 					}
 				}
