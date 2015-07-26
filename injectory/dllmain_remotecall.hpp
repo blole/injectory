@@ -20,8 +20,8 @@
 
 #include <Windows.h>
 
-#include "misc.hpp"
-#include "generic_injector.hpp"
+#include "injectory/misc.hpp"
+#include "injectory/generic_injector.hpp"
 
 typedef BOOL (__stdcall *DLLMAIN)(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
 

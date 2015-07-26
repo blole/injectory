@@ -25,10 +25,10 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 
-#include "misc.hpp"
-#include "dllmain_remotecall.hpp"
-#include "generic_injector.hpp"
-#include "injector_helper.hpp"
+#include "injectory/misc.hpp"
+#include "injectory/dllmain_remotecall.hpp"
+#include "injectory/generic_injector.hpp"
+#include "injectory/injector_helper.hpp"
 
 BOOL
 MapRemoteModuleW(

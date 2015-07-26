@@ -25,7 +25,7 @@
 
 #pragma comment(lib, "Psapi.lib")
 
-#include "misc.hpp"
+#include "injectory/misc.hpp"
 
 FARPROC
 GetRemoteProcAddress(

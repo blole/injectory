@@ -25,11 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "misc.hpp"
-#include "findproc.hpp"
-#include "injector_helper.hpp"
-#include "generic_injector.hpp"
-#include "manualmap.hpp"
+#include "injectory/misc.hpp"
+#include "injectory/findproc.hpp"
+#include "injectory/injector_helper.hpp"
+#include "injectory/generic_injector.hpp"
+#include "injectory/manualmap.hpp"
 
 #define VERSION "4.2"
 #define CMP_OPT(option) compare_option(option, argv[argv_index])

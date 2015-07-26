@@ -24,9 +24,9 @@
 
 #include <TlHelp32.h>
 
-#include "misc.hpp"
-#include "generic_injector.hpp"
-#include "manualmap.hpp"
+#include "injectory/misc.hpp"
+#include "injectory/generic_injector.hpp"
+#include "injectory/manualmap.hpp"
 
 struct INJ_DATA
 {
