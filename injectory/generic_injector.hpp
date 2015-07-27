@@ -27,8 +27,6 @@
 #define INJLIB_WAITTIMEOUT		INFINITE
 #define WII_WAITTIMEOUT			5000
 
-void InjectLibrary(const pid_t& pid, const path& lib);
-
 BOOL
 EjectLibrary(
 	DWORD dwProcessId,
@@ -46,8 +44,6 @@ EjectLibraryA(
 	DWORD dwProcessId,
 	LPCSTR lpLibPath
 	);
-
-pid_t InjectLibraryOnStartup(const path& lib, const path& application, const wstring& applicationArgs, bool waitForInputIdle);
 
 BOOL
 EjectLibraryOnStartupW(

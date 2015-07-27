@@ -17,6 +17,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/injector_helper.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/module.hpp"
+#include "injectory/process.hpp"
 
 #include <boost/shared_ptr.hpp>
 using namespace std;
@@ -141,85 +143,31 @@ EnablePrivilegeW(
 	return bRet;
 }
 
-BOOL
-SuspendResumeProcess(
-	DWORD dwProcessId,
-	BOOL bResumeProcess
-	)
+void SuspendResumeProcess(const pid_t& pid, bool bResumeProcess)
 {
-	BOOL	bRet		= FALSE; 
-	HANDLE	hProcess	= 0;
-	HMODULE hNtDll		= 0;
-
-	LONG (NTAPI *_NtSuspendProcess)(HANDLE ProcessHandle) = 0;
-	LONG (NTAPI *_NtResumeProcess)(HANDLE ProcessHandle) = 0;
+	LONG (NTAPI *_NtSuspendProcess)(HANDLE) = 0;
+	LONG (NTAPI *_NtResumeProcess)(HANDLE) = 0;
 	
-	__try
-	{
-		hNtDll = GetModuleHandleW(L"ntdll");
-		if(!hNtDll)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to ntdll.");
-			__leave;
-		}
+	Module ntDll(L"ntdll");
 		
-		_NtSuspendProcess = (LONG (NTAPI*)(HANDLE))GetProcAddress(hNtDll, "NtSuspendProcess");
-		if(_NtSuspendProcess == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of NtSuspendProcess.");
-			__leave;
-		}
-
-		_NtResumeProcess = (LONG (NTAPI*)(HANDLE))GetProcAddress(hNtDll, "NtResumeProcess");
-		if(_NtResumeProcess == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of NtResumeProcess.");
-			__leave;
-		}
+	_NtSuspendProcess = (LONG(NTAPI*)(HANDLE))ntDll.getProcAddress("NtSuspendProcess");
+	_NtResumeProcess =  (LONG(NTAPI*)(HANDLE))ntDll.getProcAddress("NtResumeProcess");
 		
-		// PROCESS_SUSPEND_RESUME (0x0800) Required to suspend or resume a process.
-		hProcess = OpenProcess(
-			PROCESS_SUSPEND_RESUME,
-			FALSE,
-			dwProcessId);
-		if(!hProcess)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to process.");
-			__leave;
-		}
+	// PROCESS_SUSPEND_RESUME (0x0800) Required to suspend or resume a process.
+	Process proc = Process::open(pid, false, PROCESS_SUSPEND_RESUME);
 
-		// Resume Process
-		if(bResumeProcess)
-		{
-			LONG ntStatus = (*_NtResumeProcess)(hProcess);
-			if(!NT_SUCCESS(ntStatus))
-			{
-				PRINT_ERROR_MSGA("NtResumeProcess. [NtStatus: 0x%X]", (ULONG)ntStatus);
-				__leave;
-			}
-		}
-		// Suspend Process
-		else
-		{
-			LONG ntStatus = (*_NtSuspendProcess)(hProcess);
-			if(!NT_SUCCESS(ntStatus))
-			{
-				PRINT_ERROR_MSGA("NtSuspendProcess. [NtStatus 0x%X]", (ULONG)ntStatus);
-				__leave;
-			}	
-		}
-
-		bRet = TRUE;
-	}
-	__finally
+	if(bResumeProcess) //resume
 	{
-		if(hProcess)
-		{
-			CloseHandle(hProcess);
-		}
+		LONG ntStatus = (*_NtResumeProcess)(proc.hProcess);
+		if (!NT_SUCCESS(ntStatus))
+			BOOST_THROW_EXCEPTION(ex_resume_process() << e_nt_status(ntStatus));
 	}
-
-	return bRet;
+	else //suspend
+	{
+		LONG ntStatus = (*_NtSuspendProcess)(proc.hProcess);
+		if(!NT_SUCCESS(ntStatus))
+			BOOST_THROW_EXCEPTION(ex_suspend_process() << e_nt_status(ntStatus));
+	}
 }
 
 void HideThreadFromDebugger(const tid_t& tid)
@@ -389,7 +337,7 @@ ModuleInjectedW(
 
 VOID
 ListModules(
-	DWORD dwProcessId
+	DWORD pid
 	)
 {
 	SIZE_T Memory = 0;
@@ -407,10 +355,10 @@ ListModules(
 		PROCESS_VM_WRITE			|	// For WriteProcessMemory
 		PROCESS_VM_READ,
 		FALSE, 
-		dwProcessId);
+		pid);
 	if(!hProcess)
 	{
-		PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
+		PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", pid);
 		return;
 	}
 
@@ -486,15 +434,15 @@ MyGetSystemInfo(
 	// WOW64 -> GetNativeSystemInfo
 	void (WINAPI *_GetNativeSystemInfo)(LPSYSTEM_INFO) = 0;
 
-	HMODULE hKernel32Dll = GetModuleHandleW(L"kernel32");
-	if(!hKernel32Dll)
+	HMODULE kernel32dll = GetModuleHandleW(L"kernel32");
+	if(!kernel32dll)
 	{
 		PRINT_ERROR_MSGA("Could not get handle to kernel32.");
 		return;
 	}
 
 	_GetNativeSystemInfo = (void (__stdcall*)(LPSYSTEM_INFO))GetProcAddress(
-		hKernel32Dll, "GetNativeSystemInfo");
+		kernel32dll, "GetNativeSystemInfo");
 	if(_GetNativeSystemInfo)
 	{
 		_GetNativeSystemInfo(lpSystemInfo);
@@ -507,7 +455,7 @@ MyGetSystemInfo(
 
 INT
 IsProcess64(
-	DWORD dwProcessId
+	DWORD pid
 	)
 {
 	// Wenn es ein 64bit-System ist, sind alle Prozesse, für die IsWow64Process
@@ -516,7 +464,7 @@ IsProcess64(
 
 	SYSTEM_INFO siSysInfo = {0};
 	HANDLE hProcess = 0;
-	HMODULE hKernel32Dll = 0;
+	HMODULE kernel32dll = 0;
 	BOOL (WINAPI *_IsWow64Process)(HANDLE, PBOOL) = 0;
 
 	MyGetSystemInfo(&siSysInfo);
@@ -525,25 +473,25 @@ IsProcess64(
 	if(siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
 	{
 		BOOL bIsWow64 = FALSE;
-		hKernel32Dll = GetModuleHandleW(L"kernel32");
-		if(!hKernel32Dll)
+		kernel32dll = GetModuleHandleW(L"kernel32");
+		if(!kernel32dll)
 		{
 			PRINT_ERROR_MSGA("Could not get handle to kernel32.");
 			return -1;
 		}
 
 		_IsWow64Process = (BOOL (WINAPI*)(HANDLE, PBOOL))GetProcAddress(
-			hKernel32Dll, "IsWow64Process");
+			kernel32dll, "IsWow64Process");
 		if(_IsWow64Process == 0)
 		{
 			PRINT_ERROR_MSGA("Could not get the address of IsWow64Process.");
 			return -1;
 		}
 
-		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwProcessId);
+		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
 		if(!hProcess)
 		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
+			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", pid);
 			return -1;
 		}
 

@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/findproc.hpp"
+#include "injectory/process.hpp"
 #include "injectory/exception.hpp"
 
 BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
@@ -49,7 +50,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 				if (injdata.mm)
 					MapRemoteModule(dwPid, injdata.libpath);
 				else
-					InjectLibrary(dwPid, injdata.libpath);
+					Process::open(dwPid).inject(injdata.libpath);
 			}
 			else
 			{
@@ -90,7 +91,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 				if(injdata.mm)
 					MapRemoteModule(dwPid, injdata.libpath);
 				else
-					InjectLibrary(dwPid, injdata.libpath);
+					Process::open(dwPid).inject(injdata.libpath);
 			}
 			else
 			{
@@ -175,7 +176,7 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 					if(mm)
 						MapRemoteModule(pid, lpLibPath);
 					else
-						InjectLibrary(pid, lpLibPath);
+						Process::open(pid).inject(lpLibPath);
 				}
 				else
 				{

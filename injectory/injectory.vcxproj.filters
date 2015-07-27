@@ -32,6 +32,9 @@
     <ClCompile Include="common.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="process.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp">
@@ -53,6 +56,12 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="common.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="process.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="module.hpp">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

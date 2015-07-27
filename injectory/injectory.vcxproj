@@ -128,6 +128,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
     <ClCompile Include="common.cpp" />
+    <ClCompile Include="process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp" />
@@ -137,6 +138,8 @@
     <ClInclude Include="injector_helper.hpp" />
     <ClInclude Include="manualmap.hpp" />
     <ClInclude Include="common.hpp" />
+    <ClInclude Include="module.hpp" />
+    <ClInclude Include="process.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

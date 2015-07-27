@@ -23,6 +23,7 @@
 #include "injectory/injector_helper.hpp"
 #include "injectory/generic_injector.hpp"
 #include "injectory/manualmap.hpp"
+#include "injectory/process.hpp"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 			if (mm)
 				MapRemoteModule(pid, lib);
 			else
-				InjectLibrary(pid, lib);
+				Process::open(pid).inject(lib);
 		}
 
 		/*if (vars.count("procname"))
@@ -120,9 +121,15 @@ int main(int argc, char *argv[])
 			InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
 		else*/ if (vars.count("launch"))
 		{
-			path launch  = vars["launch"].as<path>();
+			path    app  = vars["launch"].as<path>();
 			wstring args = vars["args"].as<wstring>();
-			InjectLibraryOnStartup(lib, launch, args, wii);
+			
+			Process proc = Process::launch(app, args);
+			
+			proc.resumeThread();
+			if (wii)
+				proc.waitForInputIdle();
+			proc.inject(lib);
 		}
 	}
 	catch (const ex_no_library_path& e)

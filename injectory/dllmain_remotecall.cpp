@@ -99,7 +99,7 @@ BOOL RemoteDllMainCall(HANDLE hProcess, LPVOID lpModuleEntry, HMODULE hModule, D
 		}
 		
 		// Wait for the remote thread to terminate
-		if(WaitForSingleObject(hThread, WII_WAITTIMEOUT) == WAIT_FAILED)
+		if(WaitForSingleObject(hThread, 5000) == WAIT_FAILED)
 		{
 			PRINT_ERROR_MSGA("WaitForSingleObject failed.");
 			__leave;

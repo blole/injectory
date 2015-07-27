@@ -27,6 +27,8 @@ using boost::filesystem::path;
 #include <string>
 using std::string;
 using std::wstring;
+using std::shared_ptr;
+
 
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
@@ -47,18 +49,19 @@ typedef DWORD pid_t;
 ///a thread id
 typedef DWORD tid_t;
 
+///a handle
+typedef HANDLE handle_t;
 
 namespace std
 {
-	inline string to_string(wstring s)
+	inline string to_string(const wstring& s)
 	{
 		static std::wstring_convert<std::codecvt_utf8<wchar_t>> to_wstring_converter;
 		return to_wstring_converter.to_bytes(s);
 	}
-	inline wstring to_wstring(string s)
+	inline wstring to_wstring(const string& s)
 	{
 		static std::wstring_convert<std::codecvt_utf8<wchar_t>> to_wstring_converter;
 		return to_wstring_converter.from_bytes(s);
 	}
 }
-

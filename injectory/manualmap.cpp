@@ -21,6 +21,7 @@
 #include "injectory/dllmain_remotecall.hpp"
 #include "injectory/generic_injector.hpp"
 #include "injectory/injector_helper.hpp"
+#include "injectory/process.hpp"
 
 #include <stdio.h>
 #include <Windows.h>
@@ -125,7 +126,7 @@ void FixIAT(
 			hRemoteModule = (HMODULE)ModuleInjectedW(hProcess, moduleNtPath);
 			if(!hRemoteModule)
 			{
-				InjectLibrary(dwProcessId, path(modulePath));
+				Process::open(dwProcessId).inject(modulePath);
 				
 				hRemoteModule = (HMODULE)ModuleInjectedW(hProcess, moduleNtPath);
 			}

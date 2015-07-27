@@ -14,6 +14,10 @@ struct ex_set_se_debug_privilege	: virtual exception_base { };
 struct ex_fix_iat					: virtual exception_base { };
 struct ex_map_remote				: virtual exception_base { };
 struct ex_injection					: virtual exception_base { };
+struct ex_resume_process			: virtual exception_base { };
+struct ex_suspend_process			: virtual exception_base { };
+struct ex_wait_for_input_idle		: virtual exception_base { };
+struct ex_get_module_handle			: virtual exception_base { };
 
 typedef boost::error_info<struct tag_text, std::string> e_text;
 typedef boost::error_info<struct tag_file_path, path> e_file_path;
