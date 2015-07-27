@@ -17,7 +17,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #undef UNICODE
 
-#include "injectory/misc.hpp"
+#include "injectory/common.hpp"
+#include "injectory/exception.hpp"
 #include "injectory/findproc.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/generic_injector.hpp"
@@ -25,6 +26,7 @@
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+#include <boost/filesystem.hpp>
 
 #include <exception>
 #include <iostream>
@@ -32,7 +34,6 @@ namespace po = boost::program_options;
 using namespace std;
 
 #define VERSION "5.0-SNAPSHOT"
-
 
 int main(int argc, char *argv[])
 {
@@ -50,9 +51,9 @@ int main(int argc, char *argv[])
 			("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
 			("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
 			("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
-			("lib",			po::value<string>()->value_name("<file>"),	"fully qualified path to libraries")
-			("launch",		po::value<string>()->value_name("<file>"),	"fully qualified path to target process")
-			("args",		po::value<string>()->value_name("<args>")->default_value(""),
+			("lib",			po::value<path>()->value_name("<file>"),	"fully qualified path to libraries")
+			("launch",		po::value<path>()->value_name("<file>"),	"fully qualified path to target process")
+			("args",		po::wvalue<wstring>()->value_name("<args>")->default_value(L"", ""),
 																		"arguments for target process")
 			("mm",													  	"map the PE file into the remote address space of")
 			("dbgpriv",												  	"set SeDebugPrivilege")
@@ -85,61 +86,68 @@ int main(int argc, char *argv[])
 		if (vars.count("dbgpriv"))
 		{
 			if (!EnablePrivilegeW(L"SeDebugPrivilege", TRUE))
-				throw runtime_error("could not set SeDebugPrivilege");
+				BOOST_THROW_EXCEPTION (ex_set_se_debug_privilege() << e_text("could not set SeDebugPrivilege"));
 		}
 
 		bool eject = vars.count("eject") > 0;
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
 
-		auto var_string = [vars](string var)
-		{
-			return vars[var].as<string>().c_str();
-		};
-
 		if (!vars.count("lib"))
-			throw runtime_error("no library path (--lib) given");
+			BOOST_THROW_EXCEPTION (ex_no_library_path());
 
-		const char* lib = var_string("lib");
+		path lib = vars["lib"].as<path>();
 
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
 
-			THROW_IF_TARGET_BIT_MISMATCH(pid);
+			if (CHECK_TARGET_PROC(pid))
+				BOOST_THROW_EXCEPTION (ex_target_bit_mismatch() << e_text(BIT_ERROR_STRING) << e_pid(pid));
+
 			
 			if (mm)
-			{
-				if (!MapRemoteModuleA(pid, lib))
-					throw runtime_error("injection failed");
-			}
+				MapRemoteModule(pid, lib);
 			else
-			{
-				if (!InjectLibraryA(pid, lib))
-					throw runtime_error("injection failed");
-			}
+				InjectLibrary(pid, lib);
 		}
 
-		if (vars.count("procname"))
+		/*if (vars.count("procname"))
 			InjectEjectToProcessNameA(var_string("procname"), lib, nullptr, !eject, mm);
 		else if (vars.count("wndtitle"))
 			InjectEjectToWindowTitleA(var_string("wndtitle"), lib, nullptr, !eject, mm);
 		else if (vars.count("wndclass"))
 			InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
-		else if (vars.count("launch"))
+		else*/ if (vars.count("launch"))
 		{
-			if (!InjectLibraryOnStartupA(lib, var_string("launch"), var_string("args"), wii))
-				throw runtime_error("injection failed");
+			path launch  = vars["launch"].as<path>();
+			wstring args = vars["args"].as<wstring>();
+			InjectLibraryOnStartup(lib, launch, args, wii);
 		}
+	}
+	catch (const ex_no_library_path& e)
+	{
+		cerr << "no library path (--lib) given" << endl;
+	}
+	catch (const boost::exception& e)
+	{
+		cerr << "error: ";
+		cerr << boost::diagnostic_information(e);
+		cerr << boost::get_error_info<e_text>(e) << endl;
+		cerr << boost::get_error_info<e_file_path>(e) << endl;
+		cerr << boost::get_error_info<e_nt_status>(e) << endl;
+		cerr << boost::get_error_info<e_pid>(e) << endl;
+		cerr << boost::get_error_info<e_tid>(e) << endl;
+		return 1;
 	}
 	catch (const exception& e)
 	{
-		cerr << "error: " << e.what() << endl;
+		cerr << "non-boost exception caught: " << e.what() << endl;
 		return 1;
 	}
 	catch (...)
 	{
-		cerr << "Exception of unknown type!" << endl;
+		cerr << "exception of unknown type" << endl;
 		return 1;
 	}
 

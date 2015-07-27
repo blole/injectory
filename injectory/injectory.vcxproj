@@ -127,15 +127,16 @@
     <ClCompile Include="injector_helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
-    <ClCompile Include="misc.cpp" />
+    <ClCompile Include="common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp" />
+    <ClInclude Include="exception.hpp" />
     <ClInclude Include="findproc.hpp" />
     <ClInclude Include="generic_injector.hpp" />
     <ClInclude Include="injector_helper.hpp" />
     <ClInclude Include="manualmap.hpp" />
-    <ClInclude Include="misc.hpp" />
+    <ClInclude Include="common.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

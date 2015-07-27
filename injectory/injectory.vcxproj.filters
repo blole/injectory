@@ -29,7 +29,7 @@
     <ClCompile Include="main.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="misc.cpp">
+    <ClCompile Include="common.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -49,7 +49,10 @@
     <ClInclude Include="manualmap.hpp">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="misc.hpp">
+    <ClInclude Include="exception.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="common.hpp">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

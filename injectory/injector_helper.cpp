@@ -16,6 +16,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/injector_helper.hpp"
+#include "injectory/exception.hpp"
+
+#include <boost/shared_ptr.hpp>
+using namespace std;
 
 FARPROC
 GetRemoteProcAddress(
@@ -218,67 +222,39 @@ SuspendResumeProcess(
 	return bRet;
 }
 
-BOOL
-HideThreadFromDebugger(
-	DWORD dwThreadId
-	)
+void HideThreadFromDebugger(const tid_t& tid)
 {
-	BOOL	bRet		= FALSE;
-	HANDLE	hThread		= 0;
-	HMODULE hNtDll		= 0;
-	LONG	ntStatus	= 0;
-
-	LONG (NTAPI *_NtSetInformationThread)(
-		HANDLE ThreadHandle,
-		MY_THREAD_INFORMATION_CLASS ThreadInformationClass,
-		PVOID ThreadInformation,
-		ULONG ThreadInformationLength) = 0;
-
-	__try
+	try
 	{
-		hNtDll = GetModuleHandle(TEXT("ntdll"));
-		if(!hNtDll)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to ntdll.");
-			__leave;
-		}
+		LONG(NTAPI *_NtSetInformationThread)(
+			HANDLE ThreadHandle,
+			MY_THREAD_INFORMATION_CLASS ThreadInformationClass,
+			PVOID ThreadInformation,
+			ULONG ThreadInformationLength) = 0;
+
+		HMODULE hNtDll = GetModuleHandle(TEXT("ntdll"));
+		if (!hNtDll)
+			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not get handle to ntdll"));
 
 		_NtSetInformationThread =
-			(LONG (NTAPI*)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG))
+			(LONG(NTAPI*)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG))
 			GetProcAddress(hNtDll, "NtSetInformationThread");
-		if(_NtSetInformationThread == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of NtSetInformationThread.");
-			__leave;
-		}
+		if (_NtSetInformationThread == 0)
+			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not get the address of NtSetInformationThread"));
 
-		hThread = OpenThread(
-			THREAD_SET_INFORMATION,
-			FALSE,
-			dwThreadId);
-		if(hThread == 0)
-		{
-			PRINT_ERROR_MSGA("Could not open thread (ThreadId: %d).", dwThreadId);
-			__leave;
-		}
+		boost::shared_ptr<void> hThread(OpenThread(THREAD_SET_INFORMATION, FALSE, tid), CloseHandle);
+		if (hThread == 0)
+			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not open thread"));
 
-		ntStatus = (*_NtSetInformationThread)(hThread, ThreadHideFromDebugger, 0, 0);
-		if(!NT_SUCCESS(ntStatus))
-		{
-			PRINT_ERROR_MSGA("NtSetInformationThread. [NtStatus 0x%X]", (ULONG)ntStatus);
-			__leave;
-		}
-
-		bRet = TRUE;
-
+		LONG ntStatus = (*_NtSetInformationThread)(hThread.get(), ThreadHideFromDebugger, 0, 0);
+		if (!NT_SUCCESS(ntStatus))
+			BOOST_THROW_EXCEPTION (ex_hide() << e_text("NtSetInformationThread") << e_nt_status(ntStatus));
 	}
-	__finally
+	catch (const boost::exception& e)
 	{
-		if(hThread)
-			CloseHandle(hThread);
+		e << e_text("could not hide thread in remote process") << e_tid(tid);
+		throw;
 	}
-
-	return bRet;
 }
 
 BOOL

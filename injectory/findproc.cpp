@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/findproc.hpp"
+#include "injectory/exception.hpp"
 
 BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 {
@@ -45,18 +46,10 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 
 			if(injdata.inject)
 			{
-				if(injdata.mm)
-				{
-					if(!MapRemoteModuleA(dwPid, injdata.libpath))
-					{
-						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
-							dwPid);
-					}
-				}
+				if (injdata.mm)
+					MapRemoteModule(dwPid, injdata.libpath);
 				else
-				{
-					InjectLibraryA(dwPid, injdata.libpath);
-				}
+					InjectLibrary(dwPid, injdata.libpath);
 			}
 			else
 			{
@@ -95,17 +88,9 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 			if(injdata.inject)
 			{
 				if(injdata.mm)
-				{
-					if(!MapRemoteModuleA(dwPid, injdata.libpath))
-					{
-						PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
-							dwPid);
-					}
-				}
+					MapRemoteModule(dwPid, injdata.libpath);
 				else
-				{
-					InjectLibraryA(dwPid, injdata.libpath);
-				}
+					InjectLibrary(dwPid, injdata.libpath);
 			}
 			else
 			{
@@ -161,6 +146,7 @@ BOOL InjectEjectToWindowClassA(LPCSTR lpClassName, LPCSTR lpLibPath, LPVOID lpMo
 BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpModule, BOOL inject, BOOL mm)
 {
 	PROCESSENTRY32 pe32 = { sizeof(PROCESSENTRY32) };
+	pid_t& pid = pe32.th32ProcessID;
 	HANDLE hProcSnap = 0;
 	BOOL bFound = FALSE;
 	hProcSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -176,9 +162,9 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 		{
 			if(!strncmp(lpProcName, pe32.szExeFile, strlen(lpProcName)))
 			{
-				if(!CHECK_TARGET_PROC(pe32.th32ProcessID))
+				if(!CHECK_TARGET_PROC(pid))
 				{
-					PRINT_TARGET_PROC_ERROR(pe32.th32ProcessID);
+					PRINT_TARGET_PROC_ERROR(pid);
 					continue;
 				}
 
@@ -187,35 +173,24 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 				if(inject)
 				{
 					if(mm)
-					{
-						if(!MapRemoteModuleA(pe32.th32ProcessID, lpLibPath))
-						{
-							PRINT_ERROR_MSGA("Failed to map the PE file into the remote address space of a process (PID: %d)\n",
-								pe32.th32ProcessID);
-						}
-					}
+						MapRemoteModule(pid, lpLibPath);
 					else
-					{
-						if(!InjectLibraryA(pe32.th32ProcessID, lpLibPath))
-						{
-							PRINT_ERROR_MSGA("Injection failed. (PID: %d)", pe32.th32ProcessID);
-						}
-					}
+						InjectLibrary(pid, lpLibPath);
 				}
 				else
 				{
 					if(lpModule)
 					{
-						if(!EjectLibrary(pe32.th32ProcessID, lpModule))
+						if(!EjectLibrary(pid, lpModule))
 						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pe32.th32ProcessID);
+							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pid);
 						}
 					}
 					else
 					{
-						if(!EjectLibraryA(pe32.th32ProcessID, lpLibPath))
+						if(!EjectLibraryA(pid, lpLibPath))
 						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pe32.th32ProcessID);
+							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pid);
 						}
 					}
 				}

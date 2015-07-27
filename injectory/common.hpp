@@ -19,20 +19,14 @@
 #include <Windows.h>
 #include <stdio.h>
 
-#if defined(_WIN64)
-	#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 0
-	#define BIT_ERROR_STRING	"injectory.x64 doesn't support x86 processes"
-#elif defined(_WIN32)
-	#define CHECK_TARGET_PROC(pid) IsProcess64(pid) != 1
-	#define BIT_ERROR_STRING	"injectory.x86 doesn't support x64 processes"
-#endif
+#include <boost/filesystem/path.hpp>
+using boost::filesystem::path;
 
-#define PRINT_TARGET_PROC_ERROR(pid) printf("error: " BIT_ERROR_STRING " (%d).\n", pid)
-#define THROW_IF_TARGET_BIT_MISMATCH(pid)												\
-{																						\
-	if (CHECK_TARGET_PROC(pid))															\
-		throw std::runtime_error(BIT_ERROR_STRING " (" + std::to_string(pid) + ")");	\
-}
+#include <locale>
+#include <codecvt>
+#include <string>
+using std::string;
+using std::wstring;
 
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
@@ -46,4 +40,25 @@ wchar_t *__stdcall char_to_wchar_t(const char *src);
 char *alloc_stra(char *in_str);
 
 int parse_int(const char *str);
+
+///a process id
+typedef DWORD pid_t;
+
+///a thread id
+typedef DWORD tid_t;
+
+
+namespace std
+{
+	inline string to_string(wstring s)
+	{
+		static std::wstring_convert<std::codecvt_utf8<wchar_t>> to_wstring_converter;
+		return to_wstring_converter.to_bytes(s);
+	}
+	inline wstring to_wstring(string s)
+	{
+		static std::wstring_convert<std::codecvt_utf8<wchar_t>> to_wstring_converter;
+		return to_wstring_converter.from_bytes(s);
+	}
+}
 

@@ -17,25 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 #undef UNICODE
+#include "injectory/common.hpp"
 
-#include <stdio.h>
-
-#include <Windows.h>
-#include <TlHelp32.h>
-
-#include "injectory/misc.hpp"
-#include "injectory/dllmain_remotecall.hpp"
-#include "injectory/generic_injector.hpp"
-#include "injectory/injector_helper.hpp"
-
-BOOL
-MapRemoteModuleW(
-	DWORD dwProcessId,
-	LPCWSTR lpModulePath
-	);
-
-BOOL
-MapRemoteModuleA(
-	DWORD dwProcessId,
-	LPCSTR lpModulePath
-	);
+void MapRemoteModule(const pid_t& pid, const path& lib);

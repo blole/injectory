@@ -20,24 +20,14 @@
 
 #include <Windows.h>
 
-#include "injectory/misc.hpp"
+#include "injectory/common.hpp"
 #include "injectory/injector_helper.hpp"
 
 // INFINITE can cause DeadLock if host process is in debug mode
 #define INJLIB_WAITTIMEOUT		INFINITE
 #define WII_WAITTIMEOUT			5000
 
-BOOL
-InjectLibraryW(
-	DWORD dwProcessId,
-	LPCWSTR lpLibPath
-	);
-
-BOOL
-InjectLibraryA(
-	DWORD dwProcessId,
-	LPCSTR lpLibPath
-	);
+void InjectLibrary(const pid_t& pid, const path& lib);
 
 BOOL
 EjectLibrary(
@@ -57,21 +47,7 @@ EjectLibraryA(
 	LPCSTR lpLibPath
 	);
 
-BOOL
-InjectLibraryOnStartupW(
-	LPCWSTR lpLibPath,
-	LPCWSTR lpProcPath,
-	LPWSTR lpProcArgs,
-	BOOL bWaitForInputIdle
-	);
-
-BOOL
-InjectLibraryOnStartupA(
-	LPCSTR lpLibPath,
-	LPCSTR lpProcPath,
-	LPCSTR lpProcArgs,
-	BOOL bWaitForInputIdle
-	);
+pid_t InjectLibraryOnStartup(const path& lib, const path& application, const wstring& applicationArgs, bool waitForInputIdle);
 
 BOOL
 EjectLibraryOnStartupW(

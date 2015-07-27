@@ -23,7 +23,7 @@
 
 #pragma comment(lib, "Psapi.lib")
 
-#include "injectory/misc.hpp"
+#include "injectory/common.hpp"
 
 FARPROC
 GetRemoteProcAddress(
@@ -44,10 +44,7 @@ SuspendResumeProcess(
 	BOOL bResumeProcess
 	);
 
-BOOL
-HideThreadFromDebugger(
-	DWORD dwThreadId
-	);
+void HideThreadFromDebugger(const tid_t& tid);
 
 BOOL
 GetFileNameNtW(

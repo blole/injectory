@@ -22,7 +22,7 @@
 
 #include <TlHelp32.h>
 
-#include "injectory/misc.hpp"
+#include "injectory/common.hpp"
 #include "injectory/generic_injector.hpp"
 #include "injectory/manualmap.hpp"
 

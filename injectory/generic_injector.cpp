@@ -16,18 +16,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/generic_injector.hpp"
+#include "injectory/exception.hpp"
 
-BOOL
-InjectLibraryW(
-	DWORD dwProcessId,
-	LPCWSTR lpLibPath
-	)
+#include <functional>
+using namespace std;
+
+void InjectLibrary(const pid_t& pid, const path& lib)
 {
+	using std::placeholders::_1;
+
 	BOOL bRet = FALSE;
 	BOOL bProcSuspend = FALSE;
-	HANDLE hProcess = 0;
-	HANDLE hThread = 0;
-	LPVOID lpLibFileRemote = 0;
 	LPVOID lpInjectedModule = 0;
 	HMODULE hKernel32Dll = 0;
 	SIZE_T LibPathLen = 0;
@@ -40,127 +39,90 @@ InjectLibraryW(
 	WCHAR NtMappedFileName[MAX_PATH + 1] = {0};
 	MEMORY_BASIC_INFORMATION mem_basic_info	= {0};
 
-	__try
+	try
 	{
 		hKernel32Dll = GetModuleHandleW(L"Kernel32");
 		if(!hKernel32Dll)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to Kernel32.");
-			__leave;
-		}
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not get handle to Kernel32"));
 
 		lpLoadLibraryW = (PTHREAD_START_ROUTINE)GetProcAddress(hKernel32Dll, "LoadLibraryW");
-		if(lpLoadLibraryW == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of LoadLibraryW.");
-			__leave;
-		}
+		if(!lpLoadLibraryW)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not get the address of LoadLibraryW"));
+
 		// Get a handle for the target process.
-		hProcess = OpenProcess(
+		boost::shared_ptr<void> hProcess(OpenProcess(
 			PROCESS_QUERY_INFORMATION	|	// Required by Alpha
 			PROCESS_CREATE_THREAD		|	// For CreateRemoteThread
 			PROCESS_VM_OPERATION		|	// For VirtualAllocEx/VirtualFreeEx
 			PROCESS_VM_WRITE			|	// For WriteProcessMemory
 			PROCESS_VM_READ,
 			FALSE, 
-			dwProcessId);
-		if(!hProcess)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", dwProcessId);
-			__leave;
-		}
+			pid),
+			CloseHandle);
+
+		if(!hProcess.get())
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not get handle to process") << e_pid(pid));
 
 		// suspend process
-		if(!(bProcSuspend = SuspendResumeProcess(dwProcessId, FALSE)))
-		{
-			PRINT_ERROR_MSGA("Could not suspend process.");
-			__leave;
-		}
+		if(!(bProcSuspend = SuspendResumeProcess(pid, FALSE)))
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not suspend process"));
 
-		if(!GetFileNameNtW(lpLibPath, NtFileNameThis, MAX_PATH))
-		{
-			PRINT_ERROR_MSGA("Could not get the NT namespace path.");
-			__leave;
-		}
+		if(!GetFileNameNtW(lib.c_str(), NtFileNameThis, MAX_PATH))
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not get the NT namespace path"));
 
-		if(ModuleInjectedW(hProcess, NtFileNameThis) != 0)
-		{
-			PRINT_ERROR_MSGW(L"Module (%s) already in process (PID: %d).", NtFileNameThis, dwProcessId);
-			__leave;
-		}
+		if(ModuleInjectedW(hProcess.get(), NtFileNameThis) != 0)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("module already in process") << e_file_path(lib) << e_pid(pid));
 
 		// Calculate the number of bytes needed for the DLL's pathname
-		LibPathLen = (wcslen(lpLibPath) + 1) * sizeof(wchar_t);
+		LibPathLen = (wcslen(lib.c_str()) + 1) * sizeof(wchar_t);
 
 		// Allocate space in the remote process for the pathname
-		lpLibFileRemote = VirtualAllocEx(
-			hProcess,
+		shared_ptr<void> lpLibFileRemote(VirtualAllocEx(
+			hProcess.get(),
 			NULL, 
 			LibPathLen, 
 			MEM_COMMIT, 
-			PAGE_READWRITE);
-		if(!lpLibFileRemote)
-		{
-			PRINT_ERROR_MSGA("Could not allocate memory in remote process.");
-			__leave;
-		}
+			PAGE_READWRITE),
+			bind(VirtualFreeEx, hProcess.get(), _1, 0, MEM_RELEASE));
 
-		if(!WriteProcessMemory(hProcess, lpLibFileRemote, (LPCVOID)(lpLibPath), LibPathLen, &NumBytesWritten) ||
-			NumBytesWritten != LibPathLen)
-		{
-			PRINT_ERROR_MSGA("Could not write to memory in remote process.");
-			__leave;
-		}
+		if(!lpLibFileRemote)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not allocate memory in remote process"));
+
+		if(!WriteProcessMemory(hProcess.get(), lpLibFileRemote.get(), (LPCVOID)(lib.c_str()), LibPathLen, &NumBytesWritten) || NumBytesWritten != LibPathLen)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not write to memory in remote process"));
 
 		// flush instruction cache
-		if(!FlushInstructionCache(hProcess, lpLibFileRemote, LibPathLen))
-		{
-			PRINT_ERROR_MSGA("Could not flush instruction cache.");
-			__leave;
-		}
+		if(!FlushInstructionCache(hProcess.get(), lpLibFileRemote.get(), LibPathLen))
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not flush instruction cache"));
 
 		// Create a remote thread that calls LoadLibraryW
-		hThread = CreateRemoteThread(
-			hProcess,
+		boost::shared_ptr<void> hThread(CreateRemoteThread(
+			hProcess.get(),
 			0,
 			0,
 			lpLoadLibraryW,
-			lpLibFileRemote,
+			lpLibFileRemote.get(),
 			0,
-			&dwThreadId);
+			&dwThreadId),
+			CloseHandle);
+
 		if(hThread == 0)
-		{
-			PRINT_ERROR_MSGA("Could not create thread in remote process.");
-			__leave;
-		}
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not create thread in remote process"));
 
-		if(!SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL))
-		{
-			PRINT_ERROR_MSGA("Could not set thread priority.");
-			__leave;
-		}
+		if(!SetThreadPriority(hThread.get(), THREAD_PRIORITY_TIME_CRITICAL))
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not set thread priority"));
 
-		if(!HideThreadFromDebugger(dwThreadId))
-		{
-			PRINT_ERROR_MSGA("Could not hide thread in remote process (ThreadId: 0x%X).", dwThreadId);
-			__leave;
-		}
+		HideThreadFromDebugger(dwThreadId);
+			
 
 		// Wait for the remote thread to terminate
-		if(WaitForSingleObject(hThread, INJLIB_WAITTIMEOUT) == WAIT_FAILED)
-		{
-			PRINT_ERROR_MSGA("WaitForSingleObject failed.");
-			__leave;
-		}
+		if(WaitForSingleObject(hThread.get(), INJLIB_WAITTIMEOUT) == WAIT_FAILED)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("WaitForSingleObject failed"));
 
-		// Get thread exit code
-		if(!GetExitCodeThread(hThread, &dwExitCode))
-		{
-			PRINT_ERROR_MSGA("Could not get thread exit code.");
-			__leave;
-		}
+		if(!GetExitCodeThread(hThread.get(), &dwExitCode))
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not get thread exit code"));
 
-		lpInjectedModule = ModuleInjectedW(hProcess, NtFileNameThis);
+		lpInjectedModule = ModuleInjectedW(hProcess.get(), NtFileNameThis);
 		if(lpInjectedModule != 0)
 		{
 			IMAGE_NT_HEADERS nt_header = {0};
@@ -168,19 +130,14 @@ InjectLibraryW(
 			SIZE_T NumBytesRead = 0;
 			LPVOID lpNtHeaderAddress = 0;
 
-			if(!ReadProcessMemory(hProcess, lpInjectedModule, &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
-				NumBytesRead != sizeof(IMAGE_DOS_HEADER))
-			{
-				PRINT_ERROR_MSGA("Could not read memory in remote process.");
-				__leave;
-			}
+			if(!ReadProcessMemory(hProcess.get(), lpInjectedModule, &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
+					NumBytesRead != sizeof(IMAGE_DOS_HEADER))
+				BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not read memory in remote process"));
+
 			lpNtHeaderAddress = (LPVOID)( (DWORD_PTR)lpInjectedModule + dos_header.e_lfanew );
-			if(!ReadProcessMemory(hProcess, lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
-				NumBytesRead != sizeof(IMAGE_NT_HEADERS))
-			{
-				PRINT_ERROR_MSGA("Could not read memory in remote process.");
-				__leave;
-			}
+			if(!ReadProcessMemory(hProcess.get(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
+					NumBytesRead != sizeof(IMAGE_NT_HEADERS))
+				BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not read memory in remote process"));
 
 			wprintf(
 				L"Successfully injected (%s | PID: %d):\n\n"
@@ -190,7 +147,7 @@ InjectLibraryW(
 				L"  CheckSum:       0x%08x\n"
 				L"  ExitCodeThread: 0x%08x\n",
 				NtFileNameThis,
-				dwProcessId,
+				pid,
 				lpInjectedModule,
 				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage/1024.0,
@@ -198,69 +155,23 @@ InjectLibraryW(
 				dwExitCode);
 		}
 
-		if(dwExitCode == 0)
-		{
-			if(lpInjectedModule == 0)
-			{
-				PRINT_ERROR_MSGA("Unknown Error (LoadLibraryW).");
-				__leave;
-			}
-		}
-			
-		bRet = TRUE;
+		if(dwExitCode == 0 && lpInjectedModule == 0)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("unknown error (LoadLibraryW)"));
 	}
-	__finally
+	catch (const boost::exception& e)
 	{
-		if(hThread)
-		{
-			CloseHandle(hThread);
-		}
-
-		if(hProcess)
-		{
-			CloseHandle(hProcess);
-		}
-				
-		if(lpLibFileRemote)
-		{
-			VirtualFreeEx(hProcess, lpLibFileRemote, 0, MEM_RELEASE);
-		}
+		e << e_text("injection failed");
 
 		// resume process
-		if(bProcSuspend)
-		{
-			if(!SuspendResumeProcess(dwProcessId, TRUE))
-			{
-				PRINT_ERROR_MSGA("Could not resume process.");
-			}
-		}
+		if (bProcSuspend && !SuspendResumeProcess(pid, TRUE))
+			e << e_text("could not resume process");
+
+		throw;
 	}
 
-	return bRet;
-}
-
-BOOL
-InjectLibraryA(
-	DWORD dwProcessId,
-	LPCSTR lpLibPath
-	)
-{
-	BOOL bRet = FALSE;
-	wchar_t *libpath = char_to_wchar_t(lpLibPath);
-
-	if(libpath == 0)
-	{
-		return bRet;
-	}
-
-	bRet = InjectLibraryW(dwProcessId, libpath);
-
-	if(libpath)
-	{
-		free(libpath);
-	}
-	
-	return bRet;
+	// resume process
+	if (bProcSuspend && !SuspendResumeProcess(pid, TRUE))
+		BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not resume process"));
 }
 
 BOOL
@@ -336,11 +247,7 @@ EjectLibrary(
 			__leave;
 		}
 
-		if(!HideThreadFromDebugger(dwThreadId))
-		{
-			PRINT_ERROR_MSGA("Could not hide thread in remote process (ThreadId: 0x%X).", dwThreadId);
-			__leave;
-		}
+		HideThreadFromDebugger(dwThreadId);
 
 		// Wait for the remote thread to terminate
 		if(WaitForSingleObject(hThread, INJLIB_WAITTIMEOUT) == WAIT_FAILED)
@@ -514,28 +421,22 @@ EjectLibraryA(
 	return bRet;
 }
 
-BOOL
-InjectLibraryOnStartupW(
-	LPCWSTR lpLibPath,
-	LPCWSTR lpProcPath,
-	LPWSTR lpProcArgs,
-	BOOL bWaitForInputIdle
-	)
+pid_t InjectLibraryOnStartup(const path& lib, const path& application, const wstring& applicationArgs, bool waitForInputIdle)
 {
-	BOOL				bRet	= FALSE;
-	STARTUPINFO			si		= {0};
-	PROCESS_INFORMATION	pi		= {0};
-
-	__try
+	try
 	{
-		// Need to set this for the structure
-		si.cb = sizeof(STARTUPINFO);
-	
+		STARTUPINFO			si = { 0 };
+		PROCESS_INFORMATION	pi = { 0 };
+		si.cb = sizeof(STARTUPINFO);	// need to set this for the structure
+		pid_t& pid = pi.dwProcessId;
+
+		wstring commandLine = application.wstring() + L" " + applicationArgs;
+
 		// Creates a new process and its primary thread.
 		// The new process runs in the security context of the calling process.
-		if(!CreateProcessW(
-			lpProcPath,		// full path to process
-			lpProcArgs,		// <process name> -arguments
+		BOOL success = CreateProcessW(
+			application.c_str(),	// full path to process
+			&commandLine[0],		// <process name> <arguments>
 			NULL,
 			NULL,
 			FALSE,
@@ -543,70 +444,29 @@ InjectLibraryOnStartupW(
 			NULL,
 			NULL,
 			&si,
-			&pi))
-		{
-			PRINT_ERROR_MSGA("Process could not be loaded.");
-			__leave;
-		}
+			&pi);
 
-		if(ResumeThread(pi.hThread) == (DWORD)-1)
-		{
-			PRINT_ERROR_MSGA("Could not resume process.");
-			__leave;
-		}
+		boost::shared_ptr<void>  hThread(pi.hThread, CloseHandle);
+		boost::shared_ptr<void> hProcess(pi.hProcess, CloseHandle);
+
+		if (!success)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("process could not be loaded"));
+
+		if (ResumeThread(pi.hThread) == (DWORD)-1)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("could not resume process"));
 
 		// wait until process is initialized
-		if(bWaitForInputIdle)
-		{
-			if(WaitForInputIdle(pi.hProcess, WII_WAITTIMEOUT) != 0)
-			{
-				PRINT_ERROR_MSGA("WaitForInputIdle failed.");
-				__leave;
-			}
-		}
+		if (waitForInputIdle && WaitForInputIdle(pi.hProcess, WII_WAITTIMEOUT) != 0)
+			BOOST_THROW_EXCEPTION (ex_injection() << e_text("WaitForInputIdle failed"));
 
-		bRet = InjectLibraryW(pi.dwProcessId, lpLibPath);
+		InjectLibrary(pid, lib);
+		return pid;
 	}
-	__finally
+	catch (const boost::exception& e)
 	{
-		if(pi.hThread)
-		{
-			CloseHandle(pi.hThread);
-		}
-
-		if(pi.hProcess)
-		{
-			CloseHandle(pi.hProcess);
-		}
+		e << e_text("injection failed");
+		throw;
 	}
-
-	return bRet;
-}
-
-BOOL
-InjectLibraryOnStartupA(
-	LPCSTR lpLibPath,
-	LPCSTR lpProcPath,
-	LPCSTR lpProcArgs,
-	BOOL bWaitForInputIdle
-	)
-{
-	BOOL bRet = FALSE;
-	wchar_t *libpath = char_to_wchar_t(lpLibPath);
-	wchar_t *procpath = char_to_wchar_t(lpProcPath);
-	wchar_t *procargs = char_to_wchar_t(lpProcArgs);
-
-	if(libpath == 0) return bRet;
-	if(procpath == 0) return bRet;
-	if(procargs == 0) return bRet;
-
-	bRet = InjectLibraryOnStartupW(libpath, procpath, procargs, bWaitForInputIdle);
-
-	if(libpath) free(libpath);
-	if(procpath) free(procpath);
-	if(procargs) free(procargs);
-	
-	return bRet;
 }
 
 BOOL
