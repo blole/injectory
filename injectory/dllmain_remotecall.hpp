@@ -15,9 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _DLLMAIN_REMOTECALL_H
-#define _DLLMAIN_REMOTECALL_H
-
+#pragma once
 #include <Windows.h>
 
 #include "injectory/misc.hpp"
@@ -34,5 +32,3 @@ struct DLLMAINCALL
 };
 
 BOOL RemoteDllMainCall(HANDLE hProcess, LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
-
-#endif // _DLLMAIN_REMOTECALL_H

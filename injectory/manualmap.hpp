@@ -15,9 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MANUALMAP_H
-#define _MANUALMAP_H
-
+#pragma once
 #undef UNICODE
 
 #include <stdio.h>
@@ -41,5 +39,3 @@ MapRemoteModuleA(
 	DWORD dwProcessId,
 	LPCSTR lpModulePath
 	);
-
-#endif // _MANUALMAP_H

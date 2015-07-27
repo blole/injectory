@@ -15,9 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _INJECTOR_HELPER_H
-#define _INJECTOR_HELPER_H
-
+#pragma once
 #include <stdio.h>
 
 #include <Windows.h>
@@ -103,5 +101,3 @@ enum MY_THREAD_INFORMATION_CLASS
 	ThreadIsIoPending,
 	ThreadHideFromDebugger
 };
-
-#endif // _INJECTOR_HELPER_H

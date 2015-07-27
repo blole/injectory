@@ -15,9 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _MISC_H
-#define _MISC_H
-
+#pragma once
 #include <Windows.h>
 #include <stdio.h>
 
@@ -49,4 +47,3 @@ char *alloc_stra(char *in_str);
 
 int parse_int(const char *str);
 
-#endif // _MISC_H

@@ -15,9 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef _GENERIC_INJECTOR_H
-#define _GENERIC_INJECTOR_H
-
+#pragma once
 #include <stdio.h>
 
 #include <Windows.h>
@@ -90,5 +88,3 @@ EjectLibraryOnStartupA(
 	LPSTR lpProcArgs,
 	BOOL bWaitForInputIdle
 	);
-
-#endif // _GENERIC_INJECTOR_H
