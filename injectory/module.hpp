@@ -17,9 +17,9 @@ public:
 	}
 
 	/*
-	/// this makes
-	/// WaitForSingleObject(loadLibraryThread, ...)
-	/// hang later on, for some reason...
+	// this makes
+	// WaitForSingleObject(loadLibraryThread, ...)
+	// hang later on, for some reason...
 	Module(const string& moduleName)
 		: Module(std::to_wstring(moduleName))
 	{}

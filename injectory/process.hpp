@@ -51,8 +51,8 @@ public:
 			PROCESS_VM_READ
 		);
 
-	/// Creates a new process and its primary thread.
-	/// The new process runs in the security context of the calling process.
+	// Creates a new process and its primary thread.
+	// The new process runs in the security context of the calling process.
 	static ProcessWithThread launch(const path& application, const wstring& args = L"");
 };
 

@@ -143,41 +143,6 @@ EnablePrivilegeW(
 	return bRet;
 }
 
-void HideThreadFromDebugger(const tid_t& tid)
-{
-	try
-	{
-		LONG(NTAPI *_NtSetInformationThread)(
-			HANDLE ThreadHandle,
-			MY_THREAD_INFORMATION_CLASS ThreadInformationClass,
-			PVOID ThreadInformation,
-			ULONG ThreadInformationLength) = 0;
-
-		HMODULE hNtDll = GetModuleHandle(TEXT("ntdll"));
-		if (!hNtDll)
-			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not get handle to ntdll"));
-
-		_NtSetInformationThread =
-			(LONG(NTAPI*)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG))
-			GetProcAddress(hNtDll, "NtSetInformationThread");
-		if (_NtSetInformationThread == 0)
-			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not get the address of NtSetInformationThread"));
-
-		boost::shared_ptr<void> hThread(OpenThread(THREAD_SET_INFORMATION, FALSE, tid), CloseHandle);
-		if (hThread == 0)
-			BOOST_THROW_EXCEPTION (ex_hide() << e_text("could not open thread"));
-
-		LONG ntStatus = (*_NtSetInformationThread)(hThread.get(), ThreadHideFromDebugger, 0, 0);
-		if (!NT_SUCCESS(ntStatus))
-			BOOST_THROW_EXCEPTION (ex_hide() << e_text("NtSetInformationThread") << e_nt_status(ntStatus));
-	}
-	catch (const boost::exception& e)
-	{
-		e << e_text("could not hide thread in remote process") << e_tid(tid);
-		throw;
-	}
-}
-
 BOOL
 GetFileNameNtW(
 	LPCWSTR lpFileName,

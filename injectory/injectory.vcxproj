@@ -129,6 +129,7 @@
     <ClCompile Include="manualmap.cpp" />
     <ClCompile Include="common.cpp" />
     <ClCompile Include="process.cpp" />
+    <ClCompile Include="thread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp" />

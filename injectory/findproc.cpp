@@ -184,13 +184,8 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 				}
 				else
 				{
-					if(lpModule)
-					{
-						if(!EjectLibrary(pid, lpModule))
-						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pid);
-						}
-					}
+					if (lpModule)
+						EjectLibrary(pid, lpModule);
 					else
 					{
 						if(!EjectLibraryA(pid, lpLibPath))

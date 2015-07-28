@@ -38,8 +38,6 @@ EnablePrivilegeW(
 	BOOL bEnable
 	);
 
-void HideThreadFromDebugger(const tid_t& tid);
-
 BOOL
 GetFileNameNtW(
 	LPCWSTR lpFileName,

@@ -6,6 +6,15 @@
 
 using namespace std;
 
+Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
+{
+	Process proc(pid, OpenProcess(desiredAccess, inheritHandle, pid));
+	if (!proc.handle())
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to process") << e_pid(pid));
+	else
+		return proc;
+}
+
 void Process::inject(const path& lib)
 {
 	bool suspended = false;
@@ -13,7 +22,6 @@ void Process::inject(const path& lib)
 	SIZE_T NumBytesWritten = 0;
 	SIZE_T Memory = 0;
 	DWORD loadLibraryThreadID = 0;
-	DWORD dwExitCode = 0;
 	WCHAR NtFileNameThis[MAX_PATH + 1] = { 0 };
 	WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
@@ -51,36 +59,13 @@ void Process::inject(const path& lib)
 		if (!WriteProcessMemory(proc.handle(), lpLibFileRemote.get(), (LPCVOID)(lib.c_str()), LibPathLen, &NumBytesWritten) || NumBytesWritten != LibPathLen)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
 
-		// flush instruction cache
 		if (!FlushInstructionCache(proc.handle(), lpLibFileRemote.get(), LibPathLen))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 
-		// Create a remote thread that calls LoadLibraryW
-		boost::shared_ptr<void> loadLibraryThread(CreateRemoteThread(
-			proc.handle(),
-			0,
-			0,
-			loadLibrary,
-			lpLibFileRemote.get(),
-			0,
-			&loadLibraryThreadID),
-			CloseHandle);
-
-		if (loadLibraryThread == 0)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process"));
-
-		if (!SetThreadPriority(loadLibraryThread.get(), THREAD_PRIORITY_TIME_CRITICAL))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not set thread priority"));
-
-		HideThreadFromDebugger(loadLibraryThreadID);
-
-
-		// Wait for the remote thread to terminate
-		if (WaitForSingleObject(loadLibraryThread.get(), INJLIB_WAITTIMEOUT) == WAIT_FAILED)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("WaitForSingleObject failed"));
-
-		if (!GetExitCodeThread(loadLibraryThread.get(), &dwExitCode))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get thread exit code"));
+		Thread loadLibraryThread = Thread::createRemote(proc, 0, 0, loadLibrary, lpLibFileRemote.get(), 0);
+		loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
+		loadLibraryThread.hideFromDebugger();
+		DWORD exitCode = loadLibraryThread.waitForTermination();
 
 		lpInjectedModule = ModuleInjectedW(proc.handle(), NtFileNameThis);
 		if (lpInjectedModule != 0)
@@ -112,10 +97,10 @@ void Process::inject(const path& lib)
 				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage / 1024.0,
 				nt_header.OptionalHeader.CheckSum,
-				dwExitCode);
+				exitCode);
 		}
 
-		if (dwExitCode == 0 && lpInjectedModule == 0)
+		if (exitCode == 0 && lpInjectedModule == 0)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));
 
 		proc.resume();
@@ -126,16 +111,6 @@ void Process::inject(const path& lib)
 			Process::open(id).resume();
 		throw;
 	}
-}
-
-Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
-{
-	Process proc(pid, OpenProcess(desiredAccess, inheritHandle, pid));
-
-	if (!proc.handle())
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to process") << e_pid(pid));
-	else
-		return proc;
 }
 
 ProcessWithThread Process::launch(const path & application, const wstring & args)

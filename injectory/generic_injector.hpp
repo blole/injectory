@@ -24,14 +24,9 @@
 #include "injectory/injector_helper.hpp"
 
 // INFINITE can cause DeadLock if host process is in debug mode
-#define INJLIB_WAITTIMEOUT		INFINITE
 #define WII_WAITTIMEOUT			5000
 
-BOOL
-EjectLibrary(
-	DWORD dwProcessId,
-	LPVOID lpModule
-	);
+void EjectLibrary(DWORD dwProcessId, LPVOID module);
 
 BOOL
 EjectLibraryW(

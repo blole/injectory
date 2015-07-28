@@ -17,125 +17,42 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/generic_injector.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/process.hpp"
+#include "injectory/thread.hpp"
+#include "injectory/module.hpp"
 
 #include <functional>
 using namespace std;
 
-BOOL
-EjectLibrary(
-	DWORD pid,
-	LPVOID lpModule
-	)
+void EjectLibrary(DWORD pid, LPVOID module)
 {
-	BOOL bRet = FALSE;
-	HANDLE hProcess = 0;
-	HANDLE hThread = 0;
-	HMODULE kernel32dll = 0;
-	LPTHREAD_START_ROUTINE lpFreeLibrary = 0;
-	DWORD dwThreadId = 0;
-	DWORD dwExitCode = 0;
-
-	__try
+	bool suspended = false;
+	try
 	{
-		kernel32dll = GetModuleHandleW(L"Kernel32");
-		if(!kernel32dll)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to Kernel32.");
-			__leave;
-		}
+		Module kernel32dll(L"Kernel32");
+		LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("FreeLibrary");
 
-		lpFreeLibrary = (PTHREAD_START_ROUTINE)GetProcAddress(kernel32dll, "FreeLibrary");
-		if(lpFreeLibrary == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of FreeLibrary.");
-			__leave;
-		}
+		Process proc = Process::open(pid);
+		proc.suspend();
+		suspended = true;
 
-		// Get a handle for the target process.
-		hProcess = OpenProcess(
-			PROCESS_QUERY_INFORMATION	|	// Required by Alpha
-			PROCESS_CREATE_THREAD		|	// For CreateRemoteThread
-			PROCESS_VM_OPERATION		|	// For VirtualAllocEx/VirtualFreeEx
-			PROCESS_VM_WRITE			|	// For WriteProcessMemory
-			PROCESS_VM_READ,
-			FALSE, 
-			pid);
-		if(!hProcess)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", pid);
-			__leave;
-		}
+		Thread thread = Thread::createRemote(proc, 0, 0, lpFreeLibrary, module, 0);
+		thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
+		thread.hideFromDebugger();
+		DWORD exitCode = thread.waitForTermination();
 
-		//TODO: SuspendResumeProcess(pid, false);
+		if(!exitCode) // - invalid PE header?
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to FreeLibrary in remote process failed"));
 
-		hThread = CreateRemoteThread(
-			hProcess,
-			0,
-			0,
-			lpFreeLibrary,
-			lpModule,
-			0,
-			&dwThreadId);
-		if(hThread == 0)
-		{
-			PRINT_ERROR_MSGA("Could not create thread in remote process.");
-			__leave;
-		}
-
-		if(!SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL))
-		{
-			PRINT_ERROR_MSGA("Could not set thread priority.");
-			__leave;
-		}
-
-		HideThreadFromDebugger(dwThreadId);
-
-		// Wait for the remote thread to terminate
-		if(WaitForSingleObject(hThread, INJLIB_WAITTIMEOUT) == WAIT_FAILED)
-		{
-			printf("Error: WaitForSingleObject failed.");
-			__leave;
-		}
-
-		if(!GetExitCodeThread(hThread, &dwExitCode))
-		{
-			printf("Error: Could not get thread exit code.");
-			__leave;
-		}
-
-		// Check FreeLibrary
-		if(!dwExitCode)
-		{
-			// error: ejection failed
-			// - invalid PE header?
-			printf("Error: Call to FreeLibrary in remote process failed.\n");
-			__leave;
-		}
-
-		printf("Successfully ejected (0x%p | PID: %d):\n\n"
-			"  ExitCodeThread: 0x%08x\n",
-			lpModule,
-			pid,
-			dwExitCode);
-
-		bRet = TRUE;
+		printf("Successfully ejected (0x%p | PID: %d):\n\n  ExitCodeThread: 0x%08x\n",
+			module, pid, exitCode);
 	}
-	__finally
+	catch (const boost::exception& e)
 	{
-		if(hThread)
-		{
-			CloseHandle(hThread);
-		}
-
-		if(hProcess)
-		{
-			CloseHandle(hProcess);
-		}
-
-		//TODO: SuspendResumeProcess(pid, true);
+		if (suspended)
+			Process::open(pid).resume();
+		throw;
 	}
-
-	return bRet;
 }
 
 BOOL
@@ -202,12 +119,7 @@ EjectLibraryW(
 					}
 
 					if(wcsncmp(NtFileNameThis, NtMappedFileName, wcslen(NtMappedFileName) + 1) == 0)
-					{
-						if(!EjectLibrary(dwProcessId, mem_basic_info.AllocationBase))
-						{
-							PRINT_ERROR_MSGA("Ejection failed. (AllocationBase: 0x%p | PID: %d)", mem_basic_info.AllocationBase, dwProcessId);
-						}
-					}
+						EjectLibrary(dwProcessId, mem_basic_info.AllocationBase);
 				}
 			}
 			// VirtualQueryEx failed
