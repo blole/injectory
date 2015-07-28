@@ -64,5 +64,8 @@
     <ClInclude Include="module.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="thread.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

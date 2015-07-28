@@ -1,45 +1,33 @@
 #pragma once
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/thread.hpp"
 #include <winnt.h>
 
+
+class ProcessWithThread;
 
 class Process
 {
 private:
-	PROCESS_INFORMATION pi;
+	shared_ptr<void> shared_handle;
 
 public:
-	pid_t& pid = pi.dwProcessId;
-	tid_t& tid = pi.dwThreadId;
-	handle_t&	hProcess = pi.hProcess;
-	handle_t&	hThread = pi.hThread;
+	const pid_t id;
 
-	Process()
-		: pi({ 0 })
+	explicit Process(pid_t id = 0, handle_t handle = nullptr)
+		: id(id)
+		, shared_handle(handle, CloseHandle)
 	{}
 
-	Process(Process&& original)
-		: pi(original.pi)
+	handle_t handle() const
 	{
-		original.pi = { 0 };
+		return shared_handle.get();
 	}
 
-	virtual ~Process()
+	void waitForInputIdle(DWORD millis = 5000) const
 	{
-		CloseHandle(hThread);
-		CloseHandle(hProcess);
-	}
-
-	void resumeThread()
-	{
-		if (ResumeThread(hThread) == (DWORD)-1)
-			BOOST_THROW_EXCEPTION(ex_resume_process());
-	}
-
-	void waitForInputIdle(DWORD millis = 5000)
-	{
-		if (WaitForInputIdle(hProcess, millis) != 0)
+		if (WaitForInputIdle(handle(), millis) != 0)
 			BOOST_THROW_EXCEPTION(ex_wait_for_input_idle());
 	}
 
@@ -56,5 +44,17 @@ public:
 
 	/// Creates a new process and its primary thread.
 	/// The new process runs in the security context of the calling process.
-	static Process launch(const path& application, const wstring& args = L"");
+	static ProcessWithThread launch(const path& application, const wstring& args = L"");
+};
+
+class ProcessWithThread : public Process
+{
+public:
+	Thread thread;
+public:
+	using Process::Process;
+	ProcessWithThread(pid_t id, handle_t handle, Thread thread)
+		: Process(id, handle)
+		, thread(thread)
+	{}
 };

@@ -4,6 +4,8 @@
 #include "injectory/module.hpp"
 #include <iostream>
 
+using namespace std;
+
 void Process::inject(const path& lib)
 {
 	bool suspended = false;
@@ -21,41 +23,41 @@ void Process::inject(const path& lib)
 		Module kernel32dll(L"Kernel32");
 		LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("LoadLibraryW");
 
-		Process proc = Process::open(pid);
-		SuspendResumeProcess(pid, false);
+		Process proc = Process::open(id);
+		SuspendResumeProcess(id, false);
 		suspended = true;
 
 		if (!GetFileNameNtW(lib.c_str(), NtFileNameThis, MAX_PATH))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get the NT namespace path"));
 
-		if (ModuleInjectedW(proc.hProcess, NtFileNameThis) != 0)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_file_path(lib) << e_pid(pid));
+		if (ModuleInjectedW(proc.handle(), NtFileNameThis) != 0)
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_file_path(lib) << e_pid(id));
 
 		// Calculate the number of bytes needed for the DLL's pathname
 		SIZE_T  LibPathLen = (wcslen(lib.c_str()) + 1) * sizeof(wchar_t);
 
 		// Allocate space in the remote process for the pathname
 		shared_ptr<void> lpLibFileRemote(VirtualAllocEx(
-			proc.hProcess,
+			proc.handle(),
 			NULL,
 			LibPathLen,
 			MEM_COMMIT,
 			PAGE_READWRITE),
-			bind(VirtualFreeEx, proc.hProcess, std::placeholders::_1, 0, MEM_RELEASE));
+			bind(VirtualFreeEx, proc.handle(), std::placeholders::_1, 0, MEM_RELEASE));
 
 		if (!lpLibFileRemote)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
 
-		if (!WriteProcessMemory(proc.hProcess, lpLibFileRemote.get(), (LPCVOID)(lib.c_str()), LibPathLen, &NumBytesWritten) || NumBytesWritten != LibPathLen)
+		if (!WriteProcessMemory(proc.handle(), lpLibFileRemote.get(), (LPCVOID)(lib.c_str()), LibPathLen, &NumBytesWritten) || NumBytesWritten != LibPathLen)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
 
 		// flush instruction cache
-		if (!FlushInstructionCache(proc.hProcess, lpLibFileRemote.get(), LibPathLen))
+		if (!FlushInstructionCache(proc.handle(), lpLibFileRemote.get(), LibPathLen))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 
 		// Create a remote thread that calls LoadLibraryW
 		boost::shared_ptr<void> loadLibraryThread(CreateRemoteThread(
-			proc.hProcess,
+			proc.handle(),
 			0,
 			0,
 			loadLibrary,
@@ -80,7 +82,7 @@ void Process::inject(const path& lib)
 		if (!GetExitCodeThread(loadLibraryThread.get(), &dwExitCode))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get thread exit code"));
 
-		lpInjectedModule = ModuleInjectedW(proc.hProcess, NtFileNameThis);
+		lpInjectedModule = ModuleInjectedW(proc.handle(), NtFileNameThis);
 		if (lpInjectedModule != 0)
 		{
 			IMAGE_NT_HEADERS nt_header = { 0 };
@@ -88,12 +90,12 @@ void Process::inject(const path& lib)
 			SIZE_T NumBytesRead = 0;
 			LPVOID lpNtHeaderAddress = 0;
 
-			if (!ReadProcessMemory(proc.hProcess, lpInjectedModule, &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
+			if (!ReadProcessMemory(proc.handle(), lpInjectedModule, &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
 				NumBytesRead != sizeof(IMAGE_DOS_HEADER))
 				BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
 
 			lpNtHeaderAddress = (LPVOID)((DWORD_PTR)lpInjectedModule + dos_header.e_lfanew);
-			if (!ReadProcessMemory(proc.hProcess, lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
+			if (!ReadProcessMemory(proc.handle(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
 				NumBytesRead != sizeof(IMAGE_NT_HEADERS))
 				BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
 
@@ -105,7 +107,7 @@ void Process::inject(const path& lib)
 				L"  CheckSum:       0x%08x\n"
 				L"  ExitCodeThread: 0x%08x\n",
 				NtFileNameThis,
-				pid,
+				id,
 				lpInjectedModule,
 				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage / 1024.0,
@@ -119,35 +121,32 @@ void Process::inject(const path& lib)
 	catch (const boost::exception& e)
 	{
 		if (suspended)
-			SuspendResumeProcess(pid, true);
+			SuspendResumeProcess(id, true);
 		throw;
 	}
 
-	SuspendResumeProcess(pid, true);
+	SuspendResumeProcess(id, true);
 }
 
 Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 {
-	Process proc;
-	proc.pid = pid;
-	proc.hProcess = OpenProcess(desiredAccess, inheritHandle, pid);
+	Process proc(pid, OpenProcess(desiredAccess, inheritHandle, pid));
 
-	if (!proc.hProcess)
+	if (!proc.handle())
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to process") << e_pid(pid));
 	else
 		return proc;
 }
 
-Process Process::launch(const path & application, const wstring & args)
+ProcessWithThread Process::launch(const path & application, const wstring & args)
 {
-	Process proc;
-
-	STARTUPINFO si = { 0 };
+	PROCESS_INFORMATION pi = { 0 };
+	STARTUPINFO			si = { 0 };
 	si.cb = sizeof(STARTUPINFO); // needed
 	wstring commandLine = application.wstring() + L" " + args;
 
-	if (!CreateProcessW(application.c_str(), &commandLine[0], NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &proc.pi))
+	if (!CreateProcessW(application.c_str(), &commandLine[0], NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
 	else
-		return proc;
+		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
 }

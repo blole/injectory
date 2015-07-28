@@ -158,13 +158,13 @@ void SuspendResumeProcess(const pid_t& pid, bool bResumeProcess)
 
 	if(bResumeProcess) //resume
 	{
-		LONG ntStatus = (*_NtResumeProcess)(proc.hProcess);
+		LONG ntStatus = (*_NtResumeProcess)(proc.handle());
 		if (!NT_SUCCESS(ntStatus))
-			BOOST_THROW_EXCEPTION(ex_resume_process() << e_nt_status(ntStatus));
+			BOOST_THROW_EXCEPTION(ex_resume_thread() << e_nt_status(ntStatus));
 	}
 	else //suspend
 	{
-		LONG ntStatus = (*_NtSuspendProcess)(proc.hProcess);
+		LONG ntStatus = (*_NtSuspendProcess)(proc.handle());
 		if(!NT_SUCCESS(ntStatus))
 			BOOST_THROW_EXCEPTION(ex_suspend_process() << e_nt_status(ntStatus));
 	}

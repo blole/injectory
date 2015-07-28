@@ -124,9 +124,9 @@ int main(int argc, char *argv[])
 			path    app  = vars["launch"].as<path>();
 			wstring args = vars["args"].as<wstring>();
 			
-			Process proc = Process::launch(app, args);
+			ProcessWithThread proc = Process::launch(app, args);
 			
-			proc.resumeThread();
+			proc.thread.resume();
 			if (wii)
 				proc.waitForInputIdle();
 			proc.inject(lib);
