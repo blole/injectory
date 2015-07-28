@@ -31,6 +31,12 @@ public:
 			BOOST_THROW_EXCEPTION(ex_wait_for_input_idle());
 	}
 
+	void suspend(bool _suspend = true) const;
+	void resume(bool _resume = true) const
+	{
+		suspend(!_resume);
+	}
+
 	void inject(const path& lib);
 
 public:
@@ -39,6 +45,7 @@ public:
 			PROCESS_CREATE_THREAD		| // For CreateRemoteThread
 			PROCESS_VM_OPERATION		| // For VirtualAllocEx/VirtualFreeEx
 			PROCESS_VM_WRITE			| // For WriteProcessMemory
+			PROCESS_SUSPEND_RESUME		|
 			PROCESS_VM_READ
 		);
 

@@ -24,7 +24,7 @@ void Process::inject(const path& lib)
 		LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("LoadLibraryW");
 
 		Process proc = Process::open(id);
-		SuspendResumeProcess(id, false);
+		proc.suspend();
 		suspended = true;
 
 		if (!GetFileNameNtW(lib.c_str(), NtFileNameThis, MAX_PATH))
@@ -117,15 +117,15 @@ void Process::inject(const path& lib)
 
 		if (dwExitCode == 0 && lpInjectedModule == 0)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));
+
+		proc.resume();
 	}
 	catch (const boost::exception& e)
 	{
 		if (suspended)
-			SuspendResumeProcess(id, true);
+			Process::open(id).resume();
 		throw;
 	}
-
-	SuspendResumeProcess(id, true);
 }
 
 Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
@@ -149,4 +149,20 @@ ProcessWithThread Process::launch(const path & application, const wstring & args
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
 	else
 		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
+}
+
+void Process::suspend(bool _suspend) const
+{
+	typedef LONG(NTAPI* func)(HANDLE);
+	func suspend_resume;
+	Module ntDll(L"ntdll");
+
+	if (_suspend)
+		suspend_resume = (func)ntDll.getProcAddress("NtSuspendProcess");
+	else
+		suspend_resume = (func)ntDll.getProcAddress("NtResumeProcess");
+
+	LONG ntStatus = (*suspend_resume)(handle());
+	if (!NT_SUCCESS(ntStatus))
+		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }

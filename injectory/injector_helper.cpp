@@ -143,33 +143,6 @@ EnablePrivilegeW(
 	return bRet;
 }
 
-void SuspendResumeProcess(const pid_t& pid, bool bResumeProcess)
-{
-	LONG (NTAPI *_NtSuspendProcess)(HANDLE) = 0;
-	LONG (NTAPI *_NtResumeProcess)(HANDLE) = 0;
-	
-	Module ntDll(L"ntdll");
-		
-	_NtSuspendProcess = (LONG(NTAPI*)(HANDLE))ntDll.getProcAddress("NtSuspendProcess");
-	_NtResumeProcess =  (LONG(NTAPI*)(HANDLE))ntDll.getProcAddress("NtResumeProcess");
-		
-	// PROCESS_SUSPEND_RESUME (0x0800) Required to suspend or resume a process.
-	Process proc = Process::open(pid, false, PROCESS_SUSPEND_RESUME);
-
-	if(bResumeProcess) //resume
-	{
-		LONG ntStatus = (*_NtResumeProcess)(proc.handle());
-		if (!NT_SUCCESS(ntStatus))
-			BOOST_THROW_EXCEPTION(ex_resume_thread() << e_nt_status(ntStatus));
-	}
-	else //suspend
-	{
-		LONG ntStatus = (*_NtSuspendProcess)(proc.handle());
-		if(!NT_SUCCESS(ntStatus))
-			BOOST_THROW_EXCEPTION(ex_suspend_process() << e_nt_status(ntStatus));
-	}
-}
-
 void HideThreadFromDebugger(const tid_t& tid)
 {
 	try

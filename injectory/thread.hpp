@@ -23,9 +23,19 @@ public:
 		return shared_handle.get();
 	}
 
-	void resume() const
+	void suspend(bool _suspend = true) const
 	{
-		if (ResumeThread(handle()) == (DWORD)-1)
-			BOOST_THROW_EXCEPTION(ex_resume_thread());
+		DWORD res;
+		if (_suspend)
+			res = SuspendThread(handle());
+		else
+			res = ResumeThread(handle());
+		if (res == (DWORD)-1)
+			BOOST_THROW_EXCEPTION(ex_suspend_resume_thread());
 	}
+	void resume(bool _resume = true) const
+	{
+		suspend(!_resume);
+	}
+
 };

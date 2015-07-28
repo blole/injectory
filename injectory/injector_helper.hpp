@@ -38,7 +38,6 @@ EnablePrivilegeW(
 	BOOL bEnable
 	);
 
-void SuspendResumeProcess(const pid_t& pid, bool bResumeProcess);
 void HideThreadFromDebugger(const tid_t& tid);
 
 BOOL
