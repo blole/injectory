@@ -19,6 +19,10 @@
 #include "injectory/process.hpp"
 #include "injectory/exception.hpp"
 
+
+#define PRINT_TARGET_PROC_ERROR(pid) printf("error: this and target process bit mismatch (x64 vs. x86) (%d).\n", pid)
+
+
 BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 {
 	CHAR name[500] = {0};
@@ -39,7 +43,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 					hwnd);
 			}
 
-			if(!CHECK_TARGET_PROC(dwPid))
+			if(Process::open(dwPid).is64bit() != is64bit)
 			{
 				PRINT_TARGET_PROC_ERROR(dwPid);
 				return TRUE;
@@ -80,7 +84,7 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 					hwnd);
 			}
 
-			if(!CHECK_TARGET_PROC(dwPid))
+			if(Process::open(dwPid).is64bit() != is64bit)
 			{
 				PRINT_TARGET_PROC_ERROR(dwPid);
 				return TRUE;
@@ -163,7 +167,7 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 		{
 			if(!strncmp(lpProcName, pe32.szExeFile, strlen(lpProcName)))
 			{
-				if(!CHECK_TARGET_PROC(pid))
+				if(Process::open(pid).is64bit() != is64bit)
 				{
 					PRINT_TARGET_PROC_ERROR(pid);
 					continue;

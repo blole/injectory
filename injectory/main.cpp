@@ -102,9 +102,10 @@ int main(int argc, char *argv[])
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
+			Process proc = Process::open(pid);
 
-			if (CHECK_TARGET_PROC(pid))
-				BOOST_THROW_EXCEPTION (ex_target_bit_mismatch() << e_text(BIT_ERROR_STRING) << e_pid(pid));
+			if (proc.is64bit() != is64bit)
+				BOOST_THROW_EXCEPTION (ex_target_bit_mismatch() << e_pid(pid));
 
 			
 			if (mm)

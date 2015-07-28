@@ -30,6 +30,14 @@ using std::wstring;
 using std::shared_ptr;
 
 
+#if defined(_WIN64)
+	const bool is64bit = true;
+#elif defined(_WIN32)
+	const bool is64bit = false;
+#endif
+
+#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
+
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
 #define PRINT_ERROR_MSGW(...) { wprintf(L"Error: [@%s] ", __FUNCTIONW__); PrintErrorMsgW(__VA_ARGS__); }

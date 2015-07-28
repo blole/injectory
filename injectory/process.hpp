@@ -39,6 +39,8 @@ public:
 
 	void inject(const path& lib);
 
+	bool is64bit() const;
+
 public:
 	static Process open(const pid_t& pid, bool inheritHandle = false, DWORD desiredAccess =
 			PROCESS_QUERY_INFORMATION	| // Required by Alpha

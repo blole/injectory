@@ -398,91 +398,16 @@ ListModules(
 	}
 }
 
-void
-__stdcall
-MyGetSystemInfo(
-	LPSYSTEM_INFO lpSystemInfo
-	)
+void __stdcall MyGetSystemInfo(LPSYSTEM_INFO lpSystemInfo)
 {
+	typedef void (WINAPI *func)(LPSYSTEM_INFO);
+
+	Module kernel32dll(L"kernel32");
 	// WOW64 -> GetNativeSystemInfo
-	void (WINAPI *_GetNativeSystemInfo)(LPSYSTEM_INFO) = 0;
+	func getNativeSystemInfo = (func)kernel32dll.getProcAddress("GetNativeSystemInfo");
 
-	HMODULE kernel32dll = GetModuleHandleW(L"kernel32");
-	if(!kernel32dll)
-	{
-		PRINT_ERROR_MSGA("Could not get handle to kernel32.");
-		return;
-	}
-
-	_GetNativeSystemInfo = (void (__stdcall*)(LPSYSTEM_INFO))GetProcAddress(
-		kernel32dll, "GetNativeSystemInfo");
-	if(_GetNativeSystemInfo)
-	{
-		_GetNativeSystemInfo(lpSystemInfo);
-	}
+	if (getNativeSystemInfo)
+		getNativeSystemInfo(lpSystemInfo);
 	else
-	{
 		GetSystemInfo(lpSystemInfo);
-	}
-}
-
-INT
-IsProcess64(
-	DWORD pid
-	)
-{
-	// Wenn es ein 64bit-System ist, sind alle Prozesse, für die IsWow64Process
-	// TRUE zurückliefert, 32bit-Prozesse, alle anderen 64bit-Prozesse.
-	// Unter einem 32bit-Windows ist sowieso alles 32bit.
-
-	SYSTEM_INFO siSysInfo = {0};
-	HANDLE hProcess = 0;
-	HMODULE kernel32dll = 0;
-	BOOL (WINAPI *_IsWow64Process)(HANDLE, PBOOL) = 0;
-
-	MyGetSystemInfo(&siSysInfo);
-
-	// x64 (AMD or Intel)
-	if(siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-	{
-		BOOL bIsWow64 = FALSE;
-		kernel32dll = GetModuleHandleW(L"kernel32");
-		if(!kernel32dll)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to kernel32.");
-			return -1;
-		}
-
-		_IsWow64Process = (BOOL (WINAPI*)(HANDLE, PBOOL))GetProcAddress(
-			kernel32dll, "IsWow64Process");
-		if(_IsWow64Process == 0)
-		{
-			PRINT_ERROR_MSGA("Could not get the address of IsWow64Process.");
-			return -1;
-		}
-
-		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-		if(!hProcess)
-		{
-			PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", pid);
-			return -1;
-		}
-
-		if(!_IsWow64Process(hProcess, &bIsWow64))
-		{
-			PRINT_ERROR_MSGA("IsWow64Process failed.");
-			return -1;
-		}
-
-		CloseHandle(hProcess);
-		
-		return bIsWow64 ? 0 : 1;
-	}
-	// x86
-	else if(siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
-	{
-		return 0;
-	}
-
-	return -1;
 }

@@ -166,3 +166,35 @@ void Process::suspend(bool _suspend) const
 	if (!NT_SUCCESS(ntStatus))
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
+
+bool Process::is64bit() const
+{
+	// Wenn es ein 64bit-System ist, sind alle Prozesse, für die IsWow64Process
+	// TRUE zurückliefert, 32bit-Prozesse, alle anderen 64bit-Prozesse.
+	// Unter einem 32bit-Windows ist sowieso alles 32bit.
+
+	SYSTEM_INFO siSysInfo = { 0 };
+	typedef BOOL(WINAPI *func)(HANDLE, PBOOL);
+	func _IsWow64Process = 0;
+
+	MyGetSystemInfo(&siSysInfo);
+
+	if (siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64 (AMD or Intel)
+	{
+		BOOL bIsWow64 = FALSE;
+		Module kernel32dll(L"Kernel32");
+
+		_IsWow64Process = (func)kernel32dll.getProcAddress("IsWow64Process");
+
+		Process proc = Process::open(id, false, PROCESS_QUERY_INFORMATION);
+
+		if (!_IsWow64Process(proc.handle(), &bIsWow64))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("IsWow64Process failed"));
+
+		return bIsWow64 ? 0 : 1;
+	}
+	else if (siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
+		return false;
+	else
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id));
+}

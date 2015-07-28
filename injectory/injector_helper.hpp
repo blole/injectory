@@ -64,13 +64,6 @@ MyGetSystemInfo(
 	LPSYSTEM_INFO lpSystemInfo
 	);
 
-INT
-IsProcess64(
-	DWORD dwProcessId
-	);
-
-#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
-
 enum MY_THREAD_INFORMATION_CLASS
 {
 	ThreadBasicInformation,
