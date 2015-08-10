@@ -56,7 +56,7 @@ void Process::inject(const Library& lib, const bool& verbose)
 	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("LoadLibraryW");
 
 	if (ModuleInjectedW(handle(), lib.ntFilename().c_str()) != 0)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_file_path(lib.path) << e_pid(id));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id));
 
 	// Calculate the number of bytes needed for the DLL's pathname
 	SIZE_T  LibPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);

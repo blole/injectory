@@ -170,13 +170,7 @@ int main(int argc, char *argv[])
 	}
 	catch (const boost::exception& e)
 	{
-		cerr << "error: ";
 		cerr << boost::diagnostic_information(e);
-		cerr << boost::get_error_info<e_text>(e) << endl;
-		cerr << boost::get_error_info<e_file_path>(e) << endl;
-		cerr << boost::get_error_info<e_nt_status>(e) << endl;
-		cerr << boost::get_error_info<e_pid>(e) << endl;
-		cerr << boost::get_error_info<e_tid>(e) << endl;
 		return 1;
 	}
 	catch (const exception& e)

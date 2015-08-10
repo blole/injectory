@@ -21,6 +21,7 @@ struct ex_get_module_handle			: virtual exception_base { };
 
 typedef boost::error_info<struct tag_text, std::string> e_text;
 typedef boost::error_info<struct tag_file_path, path> e_file_path;
+typedef boost::error_info<struct tag_module, path> e_module;
 typedef boost::error_info<struct tag_target_process_id, pid_t> e_pid;
 typedef boost::error_info<struct tag_target_thread_id, tid_t> e_tid;
 typedef boost::error_info<struct tag_nt_status, LONG> e_nt_status;
