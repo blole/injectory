@@ -93,9 +93,6 @@ public:
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
 		STARTUPINFOW* startupInfo = { 0 });
-
-	// Replaces this process via exec()
-	static void exec(const path& app, const wstring& args = L"");
 };
 
 class ProcessWithThread : public Process

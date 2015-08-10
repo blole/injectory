@@ -34,12 +34,6 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
 }
 
-void Process::exec(const path & app, const wstring & args)
-{
-	wstring commandLine = app.wstring() + L" " + args;
-	_wexecl(app.c_str(), commandLine.c_str(), nullptr);
-}
-
 void Process::suspend(bool _suspend) const
 {
 	typedef LONG(NTAPI* func)(HANDLE);
