@@ -59,13 +59,14 @@ int main(int argc, char *argv[])
 			("args",		po::wvalue<wstring>()->value_name("<string>")->default_value(L"", ""),
 																		"arguments for --launch:ed process\n")
 			
-			("lib",			po::value<path>()->value_name("<dll>"),		"fully qualified path to libraries\n")
+			("lib",			po::value<vector<path>>()->value_name("<dll>"),
+																		"fully qualified path to libraries\n")
 			
 			("mm",													  	"map the PE file into the remote address space of")
 			("dbgpriv",												  	"set SeDebugPrivilege")
-			("wii",													  	"wait for process input idle before injecting")
 			("print-pid",												"print the pid of the (started) process")
-			("wait-for-exit",											"wait for the target to exit before returning")
+			("wii",													  	"wait for process input idle before injecting")
+			("wait-for-exit",											"wait for the target to exit before exiting")
 			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
@@ -146,11 +147,13 @@ int main(int argc, char *argv[])
 
 			if (vars.count("lib"))
 			{
-				path lib = vars["lib"].as<path>();
-				if (mm)
-					MapRemoteModule(proc->id, lib);
-				else
-					proc->inject(lib, verbose);
+				for (const Library& lib : vars["lib"].as<vector<path>>())
+				{
+					if (mm)
+						MapRemoteModule(proc->id, lib.path);
+					else
+						proc->inject(lib, verbose);
+				}
 			}
 
 			if (vars.count("print-pid"))
