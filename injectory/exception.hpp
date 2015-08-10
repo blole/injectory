@@ -16,6 +16,7 @@ struct ex_injection					: virtual exception_base { };
 struct ex_suspend_resume_thread		: virtual exception_base { };
 struct ex_suspend_resume_process	: virtual exception_base { };
 struct ex_wait_for_input_idle		: virtual exception_base { };
+struct ex_wait_for_exit				: virtual exception_base { };
 struct ex_get_module_handle			: virtual exception_base { };
 
 typedef boost::error_info<struct tag_text, std::string> e_text;

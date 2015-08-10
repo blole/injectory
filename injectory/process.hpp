@@ -48,6 +48,23 @@ public:
 			BOOST_THROW_EXCEPTION(ex_wait_for_input_idle());
 	}
 
+	DWORD wait(DWORD millis = INFINITE)
+	{
+		DWORD ret = WaitForSingleObject(handle(), millis);
+		if (ret == WAIT_FAILED)
+			BOOST_THROW_EXCEPTION(ex_wait_for_exit());
+		else
+			return ret;
+	}
+
+	void kill(UINT exitCode = 1)
+	{
+		BOOL ret = TerminateProcess(handle(), exitCode);
+		if (!ret)
+			BOOST_THROW_EXCEPTION(ex_injection());
+	}
+
+
 	void suspend(bool _suspend = true) const;
 	void resume(bool _resume = true) const
 	{

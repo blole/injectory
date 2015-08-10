@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
 			("dbgpriv",												  	"set SeDebugPrivilege")
 			("wii",													  	"wait for process input idle before injecting")
 			("print-pid",												"print the pid of the (started) process")
+			("wait-for-exit",											"wait for the target to exit before returning")
+			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("eject",		po::value<vector<int>>(), "ejection mode")
@@ -146,6 +148,11 @@ int main(int argc, char *argv[])
 			if (vars.count("print-pid"))
 				cout << proc->id << endl;
 
+			if (vars.count("wait-for-exit"))
+				proc->wait();
+
+			if (vars.count("kill-on-exit"))
+				proc->kill();
 		}
 	}
 	catch (const boost::exception& e)
