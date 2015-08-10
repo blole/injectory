@@ -11,6 +11,7 @@ class Process
 {
 private:
 	shared_ptr<void> shared_handle;
+	bool resumeOnDestruction;
 
 public:
 	const pid_t id;
@@ -18,7 +19,23 @@ public:
 	explicit Process(pid_t id = 0, handle_t handle = nullptr)
 		: id(id)
 		, shared_handle(handle, CloseHandle)
+		, resumeOnDestruction(false)
 	{}
+
+	virtual ~Process()
+	{
+		try
+		{
+			if (resumeOnDestruction)
+				resume();
+		}
+		catch (...) {}
+	}
+
+	void tryResumeOnDestruction(bool resume = true)
+	{
+		resumeOnDestruction = resume;
+	}
 
 	handle_t handle() const
 	{

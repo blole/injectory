@@ -26,33 +26,23 @@ using namespace std;
 
 void EjectLibrary(DWORD pid, LPVOID module)
 {
-	bool suspended = false;
-	try
-	{
-		Module kernel32dll(L"Kernel32");
-		LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("FreeLibrary");
+	Module kernel32dll(L"Kernel32");
+	LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("FreeLibrary");
 
-		Process proc = Process::open(pid);
-		proc.suspend();
-		suspended = true;
+	Process proc = Process::open(pid);
+	proc.suspend();
+	proc.tryResumeOnDestruction();
 
-		Thread thread = Thread::createRemote(proc, 0, 0, lpFreeLibrary, module, 0);
-		thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
-		thread.hideFromDebugger();
-		DWORD exitCode = thread.waitForTermination();
+	Thread thread = Thread::createRemote(proc, 0, 0, lpFreeLibrary, module, 0);
+	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
+	thread.hideFromDebugger();
+	DWORD exitCode = thread.waitForTermination();
 
-		if(!exitCode) // - invalid PE header?
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to FreeLibrary in remote process failed"));
+	if(!exitCode) // - invalid PE header?
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to FreeLibrary in remote process failed"));
 
-		printf("Successfully ejected (0x%p | PID: %d):\n\n  ExitCodeThread: 0x%08x\n",
-			module, pid, exitCode);
-	}
-	catch (const boost::exception& e)
-	{
-		if (suspended)
-			Process::open(pid).resume();
-		throw;
-	}
+	printf("Successfully ejected (0x%p | PID: %d):\n\n  ExitCodeThread: 0x%08x\n",
+		module, pid, exitCode);
 }
 
 BOOL
