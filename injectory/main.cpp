@@ -42,23 +42,24 @@ int main(int argc, char *argv[])
 	try
 	{
 		po::options_description desc("Usage: injectory [OPTION]...\n"
-			"Inject DLL:s into running processes\n"
+			"Inject DLL:s into processes\n"
 			"\n"
 			"Options");
 
 		desc.add_options()
 			("help",													"display help message and exit")
 			("version",													"display version information and exit")
+			("verbose,v",												"\n")
 
 			("pid",			po::value<int>()->value_name("<pid>"),		"injection via process id")
 			//("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
 			//("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
 			//("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
 			("launch",		po::value<path>()->value_name("<exe>"),		"launches the target in a new process")
-			("args",		po::wvalue<wstring>()->value_name("<args>")->default_value(L"", ""),
-																		"arguments for target process")
+			("args",		po::wvalue<wstring>()->value_name("<string>")->default_value(L"", ""),
+																		"arguments for --launch:ed process\n")
 			
-			("lib",			po::value<path>()->value_name("<dll>"),		"fully qualified path to libraries")
+			("lib",			po::value<path>()->value_name("<dll>"),		"fully qualified path to libraries\n")
 			
 			("mm",													  	"map the PE file into the remote address space of")
 			("dbgpriv",												  	"set SeDebugPrivilege")
@@ -66,7 +67,6 @@ int main(int argc, char *argv[])
 			("print-pid",												"print the pid of the (started) process")
 			("wait-for-exit",											"wait for the target to exit before returning")
 			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
-			("verbose,v","")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("eject",		po::value<vector<int>>(), "ejection mode")
