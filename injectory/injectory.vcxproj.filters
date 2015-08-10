@@ -70,5 +70,8 @@
     <ClInclude Include="thread.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="library.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

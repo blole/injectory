@@ -156,6 +156,8 @@ int main(int argc, char *argv[])
 			if (vars.count("print-pid"))
 				cout << proc->id << endl;
 
+			proc->resume();
+
 			if (vars.count("wait-for-exit"))
 				proc->wait();
 

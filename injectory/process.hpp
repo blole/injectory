@@ -2,6 +2,7 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
+#include "injectory/library.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
 
@@ -71,7 +72,7 @@ public:
 		suspend(!_resume);
 	}
 
-	void inject(const path& lib, const bool& verbose = false);
+	void inject(const Library& lib, const bool& verbose = false);
 
 	bool is64bit() const;
 
