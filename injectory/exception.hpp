@@ -9,7 +9,6 @@ struct exception_base : virtual std::exception, virtual boost::exception { };
 
 struct ex_target_bit_mismatch		: virtual exception_base { };
 struct ex_hide						: virtual exception_base { };
-struct ex_no_library_path			: virtual exception_base { };
 struct ex_set_se_debug_privilege	: virtual exception_base { };
 struct ex_fix_iat					: virtual exception_base { };
 struct ex_map_remote				: virtual exception_base { };

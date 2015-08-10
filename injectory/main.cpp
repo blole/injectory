@@ -32,6 +32,7 @@ namespace po = boost::program_options;
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <process.h>
 using namespace std;
 
 #define VERSION "5.0-SNAPSHOT"
@@ -48,17 +49,21 @@ int main(int argc, char *argv[])
 		desc.add_options()
 			("help",													"display help message and exit")
 			("version",													"display version information and exit")
+
 			("pid",			po::value<int>()->value_name("<pid>"),		"injection via process id")
-			("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
-			("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
-			("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
-			("lib",			po::value<path>()->value_name("<file>"),	"fully qualified path to libraries")
-			("launch",		po::value<path>()->value_name("<file>"),	"fully qualified path to target process")
+			//("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
+			//("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
+			//("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
+			("launch",		po::value<path>()->value_name("<exe>"),		"launches the target in a new process")
 			("args",		po::wvalue<wstring>()->value_name("<args>")->default_value(L"", ""),
 																		"arguments for target process")
+			
+			("lib",			po::value<path>()->value_name("<dll>"),		"fully qualified path to libraries")
+			
 			("mm",													  	"map the PE file into the remote address space of")
 			("dbgpriv",												  	"set SeDebugPrivilege")
-			("wii",													  	"wait until process is initialized (WaitForInputIdle)")
+			("wii",													  	"wait for process input idle before injecting")
+			("print-pid",												"print the pid of the (started) process")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("eject",		po::value<vector<int>>(), "ejection mode")
@@ -94,24 +99,22 @@ int main(int argc, char *argv[])
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
 
-		if (!vars.count("lib"))
-			BOOST_THROW_EXCEPTION (ex_no_library_path());
-
-		path lib = vars["lib"].as<path>();
-
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
 			Process proc = Process::open(pid);
 
 			if (proc.is64bit() != is64bit)
-				BOOST_THROW_EXCEPTION (ex_target_bit_mismatch() << e_pid(pid));
+				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(pid));
 
-			
-			if (mm)
-				MapRemoteModule(pid, lib);
-			else
-				Process::open(pid).inject(lib);
+			if (vars.count("lib"))
+			{
+				path lib = vars["lib"].as<path>();
+				if (mm)
+					MapRemoteModule(pid, lib);
+				else
+					Process::open(pid).inject(lib);
+			}
 		}
 
 		/*if (vars.count("procname"))
@@ -120,22 +123,29 @@ int main(int argc, char *argv[])
 			InjectEjectToWindowTitleA(var_string("wndtitle"), lib, nullptr, !eject, mm);
 		else if (vars.count("wndclass"))
 			InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
-		else*/ if (vars.count("launch"))
+		else*/
+
+		if (vars.count("launch"))
 		{
+			using boost::none;
 			path    app  = vars["launch"].as<path>();
 			wstring args = vars["args"].as<wstring>();
 			
-			ProcessWithThread proc = Process::launch(app, args);
+			ProcessWithThread proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED);
 			
 			proc.thread.resume();
 			if (wii)
 				proc.waitForInputIdle();
-			proc.inject(lib);
+
+			if (vars.count("lib"))
+			{
+				path lib = vars["lib"].as<path>();
+				proc.inject(lib);
+			}
+
+			if (vars.count("print-pid"))
+				cout << proc.id << endl;
 		}
-	}
-	catch (const ex_no_library_path& e)
-	{
-		cerr << "no library path (--lib) given" << endl;
 	}
 	catch (const boost::exception& e)
 	{

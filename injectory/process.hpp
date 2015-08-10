@@ -3,7 +3,7 @@
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
 #include <winnt.h>
-
+#include <boost/optional.hpp>
 
 class ProcessWithThread;
 
@@ -53,7 +53,15 @@ public:
 
 	// Creates a new process and its primary thread.
 	// The new process runs in the security context of the calling process.
-	static ProcessWithThread launch(const path& application, const wstring& args = L"");
+	static ProcessWithThread launch(const path& app, const wstring& args = L"",
+		boost::optional<const vector<string>&> env = boost::none,
+		boost::optional<const wstring&> cwd = boost::none,
+		bool inheritHandles = false, DWORD creationFlags = 0,
+		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
+		STARTUPINFOW* startupInfo = { 0 });
+
+	// Replaces this process via exec()
+	static void exec(const path& app, const wstring& args = L"");
 };
 
 class ProcessWithThread : public Process

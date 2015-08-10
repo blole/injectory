@@ -3,6 +3,7 @@
 #include "injectory/generic_injector.hpp"
 #include "injectory/module.hpp"
 #include <iostream>
+#include <process.h>
 
 using namespace std;
 
@@ -13,6 +14,46 @@ Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to process") << e_pid(pid));
 	else
 		return proc;
+}
+
+ProcessWithThread Process::launch(const path& app, const wstring& args,
+	boost::optional<const vector<string>&> env,
+	boost::optional<const wstring&> cwd,
+	bool inheritHandles, DWORD creationFlags,
+	SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
+	STARTUPINFOW* startupInfo)
+{
+	PROCESS_INFORMATION pi = { 0 };
+	STARTUPINFO			si = { 0 };
+	si.cb = sizeof(STARTUPINFO); // needed
+	wstring commandLine = app.wstring() + L" " + args;
+
+	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles, creationFlags, NULL, NULL, &si, &pi))
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
+	else
+		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
+}
+
+void Process::exec(const path & app, const wstring & args)
+{
+	wstring commandLine = app.wstring() + L" " + args;
+	_wexecl(app.c_str(), commandLine.c_str(), nullptr);
+}
+
+void Process::suspend(bool _suspend) const
+{
+	typedef LONG(NTAPI* func)(HANDLE);
+	func suspend_resume;
+	Module ntDll(L"ntdll");
+
+	if (_suspend)
+		suspend_resume = (func)ntDll.getProcAddress("NtSuspendProcess");
+	else
+		suspend_resume = (func)ntDll.getProcAddress("NtResumeProcess");
+
+	LONG ntStatus = (*suspend_resume)(handle());
+	if (!NT_SUCCESS(ntStatus))
+		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
 
 void Process::inject(const path& lib)
@@ -99,8 +140,7 @@ void Process::inject(const path& lib)
 				nt_header.OptionalHeader.CheckSum,
 				exitCode);
 		}
-
-		if (exitCode == 0 && lpInjectedModule == 0)
+		else if (exitCode == 0 && lpInjectedModule == 0)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));
 
 		proc.resume();
@@ -111,35 +151,6 @@ void Process::inject(const path& lib)
 			Process::open(id).resume();
 		throw;
 	}
-}
-
-ProcessWithThread Process::launch(const path & application, const wstring & args)
-{
-	PROCESS_INFORMATION pi = { 0 };
-	STARTUPINFO			si = { 0 };
-	si.cb = sizeof(STARTUPINFO); // needed
-	wstring commandLine = application.wstring() + L" " + args;
-
-	if (!CreateProcessW(application.c_str(), &commandLine[0], NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
-	else
-		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
-}
-
-void Process::suspend(bool _suspend) const
-{
-	typedef LONG(NTAPI* func)(HANDLE);
-	func suspend_resume;
-	Module ntDll(L"ntdll");
-
-	if (_suspend)
-		suspend_resume = (func)ntDll.getProcAddress("NtSuspendProcess");
-	else
-		suspend_resume = (func)ntDll.getProcAddress("NtResumeProcess");
-
-	LONG ntStatus = (*suspend_resume)(handle());
-	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
 
 bool Process::is64bit() const

@@ -24,10 +24,12 @@ using boost::filesystem::path;
 
 #include <locale>
 #include <codecvt>
+using std::shared_ptr;
 #include <string>
 using std::string;
 using std::wstring;
-using std::shared_ptr;
+#include <vector>
+using std::vector;
 
 
 #if defined(_WIN64)
