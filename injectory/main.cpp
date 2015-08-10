@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
 		{
 			int pid = vars["pid"].as<int>();
 			proc = std::make_shared<Process>(Process::open(pid));
+			proc->suspend();
 		}
 
 		/*if (vars.count("procname"))
@@ -126,17 +127,22 @@ int main(int argc, char *argv[])
 			wstring args = vars["args"].as<wstring>();
 			
 			shared_ptr<ProcessWithThread> procwt = std::make_shared<ProcessWithThread>(Process::launch(app, args, none, none, false, CREATE_SUSPENDED));
-			procwt->thread.resume();
 			proc = procwt;
 		}
 
 		if (proc)
 		{
-			if (wii)
-				proc->waitForInputIdle();
-
 			if (proc->is64bit() != is64bit)
 				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc->id));
+
+			if (wii)
+			{
+				proc->resume();
+				proc->waitForInputIdle();
+			}
+			else
+				proc->tryResumeOnDestruction();
+
 
 			if (vars.count("lib"))
 			{
