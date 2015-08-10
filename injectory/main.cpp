@@ -99,22 +99,12 @@ int main(int argc, char *argv[])
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
 
+		shared_ptr<Process> proc;
+
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
-			Process proc = Process::open(pid);
-
-			if (proc.is64bit() != is64bit)
-				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(pid));
-
-			if (vars.count("lib"))
-			{
-				path lib = vars["lib"].as<path>();
-				if (mm)
-					MapRemoteModule(pid, lib);
-				else
-					Process::open(pid).inject(lib);
-			}
+			proc = std::make_shared<Process>(Process::open(pid));
 		}
 
 		/*if (vars.count("procname"))
@@ -131,20 +121,31 @@ int main(int argc, char *argv[])
 			path    app  = vars["launch"].as<path>();
 			wstring args = vars["args"].as<wstring>();
 			
-			ProcessWithThread proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED);
-			
-			proc.thread.resume();
+			shared_ptr<ProcessWithThread> procwt = std::make_shared<ProcessWithThread>(Process::launch(app, args, none, none, false, CREATE_SUSPENDED));
+			procwt->thread.resume();
+			proc = procwt;
+		}
+
+		if (proc)
+		{
 			if (wii)
-				proc.waitForInputIdle();
+				proc->waitForInputIdle();
+
+			if (proc->is64bit() != is64bit)
+				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc->id));
 
 			if (vars.count("lib"))
 			{
 				path lib = vars["lib"].as<path>();
-				proc.inject(lib);
+				if (mm)
+					MapRemoteModule(proc->id, lib);
+				else
+					proc->inject(lib);
 			}
 
 			if (vars.count("print-pid"))
-				cout << proc.id << endl;
+				cout << proc->id << endl;
+
 		}
 	}
 	catch (const boost::exception& e)
