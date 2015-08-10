@@ -71,7 +71,7 @@ public:
 		suspend(!_resume);
 	}
 
-	void inject(const path& lib);
+	void inject(const path& lib, const bool& verbose = false);
 
 	bool is64bit() const;
 

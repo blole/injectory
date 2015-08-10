@@ -56,7 +56,7 @@ void Process::suspend(bool _suspend) const
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
 
-void Process::inject(const path& lib)
+void Process::inject(const path& lib, const bool& verbose)
 {
 	LPVOID lpInjectedModule = 0;
 	SIZE_T NumBytesWritten = 0;
@@ -122,20 +122,23 @@ void Process::inject(const path& lib)
 			NumBytesRead != sizeof(IMAGE_NT_HEADERS))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
 
-		wprintf(
-			L"Successfully injected (%s | PID: %d):\n\n"
-			L"  AllocationBase: 0x%p\n"
-			L"  EntryPoint:     0x%p\n"
-			L"  SizeOfImage:      %.1f kB\n"
-			L"  CheckSum:       0x%08x\n"
-			L"  ExitCodeThread: 0x%08x\n",
-			NtFileNameThis,
-			id,
-			lpInjectedModule,
-			(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
-			nt_header.OptionalHeader.SizeOfImage / 1024.0,
-			nt_header.OptionalHeader.CheckSum,
-			exitCode);
+		if (verbose)
+		{
+			wprintf(
+				L"Successfully injected (%s | PID: %d):\n\n"
+				L"  AllocationBase: 0x%p\n"
+				L"  EntryPoint:     0x%p\n"
+				L"  SizeOfImage:      %.1f kB\n"
+				L"  CheckSum:       0x%08x\n"
+				L"  ExitCodeThread: 0x%08x\n",
+				NtFileNameThis,
+				id,
+				lpInjectedModule,
+				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
+				nt_header.OptionalHeader.SizeOfImage / 1024.0,
+				nt_header.OptionalHeader.CheckSum,
+				exitCode);
+		}
 	}
 	else if (exitCode == 0 && lpInjectedModule == 0)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));

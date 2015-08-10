@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
 			("print-pid",												"print the pid of the (started) process")
 			("wait-for-exit",											"wait for the target to exit before returning")
 			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
+			("verbose,v","")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("eject",		po::value<vector<int>>(), "ejection mode")
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
 		bool eject = vars.count("eject") > 0;
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
+		bool verbose = vars.count("verbose") > 0;
 
 		shared_ptr<Process> proc;
 
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
 				if (mm)
 					MapRemoteModule(proc->id, lib);
 				else
-					proc->inject(lib);
+					proc->inject(lib, verbose);
 			}
 
 			if (vars.count("print-pid"))
