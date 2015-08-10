@@ -26,7 +26,7 @@ using namespace std;
 
 void EjectLibrary(DWORD pid, LPVOID module)
 {
-	Module kernel32dll(L"Kernel32");
+	Module kernel32dll("kernel32");
 	LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("FreeLibrary");
 
 	Process proc = Process::open(pid);

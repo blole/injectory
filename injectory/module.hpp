@@ -16,14 +16,9 @@ public:
 			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to '" + std::to_string(moduleName) + "'"));
 	}
 
-	/*
-	// this makes
-	// WaitForSingleObject(loadLibraryThread, ...)
-	// hang later on, for some reason...
 	Module(const string& moduleName)
 		: Module(std::to_wstring(moduleName))
 	{}
-	*/
 
 
 public:

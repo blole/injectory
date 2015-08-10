@@ -35,7 +35,7 @@ void Thread::hideFromDebugger() const
 {
 	typedef LONG(NTAPI* func)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID ThreadInformation, ULONG ThreadInformationLength);
 
-	Module ntDll(L"ntdll");
+	Module ntDll("ntdll");
 	func ntSetInformationThread = (func) ntDll.getProcAddress("NtSetInformationThread");
 
 	LONG ntStatus = (*ntSetInformationThread)(handle(), ThreadHideFromDebugger, 0, 0);

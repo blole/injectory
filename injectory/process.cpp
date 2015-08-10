@@ -44,7 +44,7 @@ void Process::suspend(bool _suspend) const
 {
 	typedef LONG(NTAPI* func)(HANDLE);
 	func suspend_resume;
-	Module ntDll(L"ntdll");
+	Module ntDll("ntdll");
 
 	if (_suspend)
 		suspend_resume = (func)ntDll.getProcAddress("NtSuspendProcess");
@@ -66,7 +66,7 @@ void Process::inject(const path& lib, const bool& verbose)
 	WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 
-	Module kernel32dll(L"Kernel32");
+	Module kernel32dll("kernel32");
 	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("LoadLibraryW");
 
 	Process proc = Process::open(id);
@@ -159,7 +159,7 @@ bool Process::is64bit() const
 	if (siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64 (AMD or Intel)
 	{
 		BOOL bIsWow64 = FALSE;
-		Module kernel32dll(L"Kernel32");
+		Module kernel32dll("kernel32");
 
 		_IsWow64Process = (func)kernel32dll.getProcAddress("IsWow64Process");
 

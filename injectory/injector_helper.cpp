@@ -367,7 +367,7 @@ void __stdcall MyGetSystemInfo(LPSYSTEM_INFO lpSystemInfo)
 {
 	typedef void (WINAPI *func)(LPSYSTEM_INFO);
 
-	Module kernel32dll(L"kernel32");
+	Module kernel32dll("kernel32");
 	// WOW64 -> GetNativeSystemInfo
 	func getNativeSystemInfo = (func)kernel32dll.getProcAddress("GetNativeSystemInfo");
 
