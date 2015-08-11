@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
 			wstring args = vars["args"].as<wstring>();
 			
 			shared_ptr<ProcessWithThread> procwt = std::make_shared<ProcessWithThread>(Process::launch(app, args, none, none, false, CREATE_SUSPENDED));
+			procwt->thread.resume();
 			proc = procwt;
 		}
 		/*
