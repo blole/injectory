@@ -112,16 +112,7 @@ int main(int argc, char *argv[])
 			proc = std::make_shared<Process>(Process::open(pid));
 			proc->suspend();
 		}
-
-		/*if (vars.count("procname"))
-			InjectEjectToProcessNameA(var_string("procname"), lib, nullptr, !eject, mm);
-		else if (vars.count("wndtitle"))
-			InjectEjectToWindowTitleA(var_string("wndtitle"), lib, nullptr, !eject, mm);
-		else if (vars.count("wndclass"))
-			InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
-		else*/
-
-		if (vars.count("launch"))
+		else if (vars.count("launch"))
 		{
 			using boost::none;
 			path    app  = vars["launch"].as<path>();
@@ -130,6 +121,14 @@ int main(int argc, char *argv[])
 			shared_ptr<ProcessWithThread> procwt = std::make_shared<ProcessWithThread>(Process::launch(app, args, none, none, false, CREATE_SUSPENDED));
 			proc = procwt;
 		}
+		/*
+		else if (vars.count("procname"))
+		InjectEjectToProcessNameA(var_string("procname"), lib, nullptr, !eject, mm);
+		else if (vars.count("wndtitle"))
+		InjectEjectToWindowTitleA(var_string("wndtitle"), lib, nullptr, !eject, mm);
+		else if (vars.count("wndclass"))
+		InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
+		*/
 
 		if (proc)
 		{

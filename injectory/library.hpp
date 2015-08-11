@@ -27,8 +27,8 @@ public:
 		WCHAR ntFilename[MAX_PATH + 1] = { 0 };
 
 		if (!GetFileNameNtW(path.c_str(), ntFilename, MAX_PATH))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get the NT namespace path"));
-
-		return wstring(ntFilename);
+			BOOST_THROW_EXCEPTION(ex_injection() << e_library(path) << e_text("could not get the NT filename"));
+		else
+			return wstring(ntFilename);
 	}
 };
