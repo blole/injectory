@@ -62,7 +62,7 @@ public:
 	{
 		BOOL ret = TerminateProcess(handle(), exitCode);
 		if (!ret)
-			BOOST_THROW_EXCEPTION(ex_injection());
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id) << e_last_error());
 	}
 
 
