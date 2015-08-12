@@ -76,6 +76,19 @@ public:
 
 	bool is64bit() const;
 
+	Thread createRemoteThread(LPSECURITY_ATTRIBUTES attr, SIZE_T stackSize,
+		LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags)
+	{
+		DWORD tid;
+		handle_t thandle = CreateRemoteThread(handle(), attr, stackSize, startAddr, parameter, creationFlags, &tid);
+		if (!thandle)
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process") << e_pid(id));
+		else
+			return Thread(tid, thandle);
+	}
+
+
+
 public:
 	static Process open(const pid_t& pid, bool inheritHandle = false, DWORD desiredAccess =
 			PROCESS_QUERY_INFORMATION	| // Required by Alpha

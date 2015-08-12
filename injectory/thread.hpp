@@ -46,6 +46,4 @@ public:
 
 public:
 	static Thread open(const tid_t& tid, bool inheritHandle = false, DWORD desiredAccess = THREAD_SET_INFORMATION);
-	static Thread createRemote(const Process & proc, LPSECURITY_ATTRIBUTES attr, SIZE_T stackSize,
-		LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags);
 };

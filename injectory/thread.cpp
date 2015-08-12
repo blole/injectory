@@ -1,5 +1,4 @@
 #include "injectory/thread.hpp"
-#include "injectory/process.hpp"
 #include "injectory/module.hpp"
 #include "injectory/injector_helper.hpp"
 
@@ -12,23 +11,6 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to thread") << e_tid(tid));
 	else
 		return thread;
-}
-
-Thread Thread::createRemote(
-	const Process& proc,
-	LPSECURITY_ATTRIBUTES attr,
-	SIZE_T stackSize,
-	LPTHREAD_START_ROUTINE startAddr,
-	LPVOID parameter,
-	DWORD creationFlags)
-{
-	DWORD tid;
-	handle_t handle = CreateRemoteThread(proc.handle(), attr, stackSize, startAddr, parameter, creationFlags, &tid);
-
-	if (!handle)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process") << e_pid(proc.id));
-	else
-		return Thread(tid, handle);
 }
 
 void Thread::hideFromDebugger() const

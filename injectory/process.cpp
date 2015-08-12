@@ -82,7 +82,7 @@ void Process::inject(const Library& lib, const bool& verbose)
 	if (!FlushInstructionCache(handle(), lpLibFileRemote.get(), LibPathLen))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 
-	Thread loadLibraryThread = Thread::createRemote(*this, 0, 0, loadLibrary, lpLibFileRemote.get(), 0);
+	Thread loadLibraryThread = createRemoteThread(0, 0, loadLibrary, lpLibFileRemote.get(), 0);
 	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	loadLibraryThread.hideFromDebugger();
 	DWORD exitCode = loadLibraryThread.waitForTermination();
