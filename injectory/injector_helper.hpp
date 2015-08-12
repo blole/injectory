@@ -56,11 +56,7 @@ ListModules(
 	DWORD dwProcessId
 	);
 
-void
-__stdcall
-MyGetSystemInfo(
-	LPSYSTEM_INFO lpSystemInfo
-	);
+SYSTEM_INFO __stdcall MyGetSystemInfo();
 
 enum MY_THREAD_INFORMATION_CLASS
 {

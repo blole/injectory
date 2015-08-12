@@ -28,7 +28,7 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 	si.cb = sizeof(STARTUPINFO); // needed
 	wstring commandLine = app.wstring() + L" " + args;
 
-	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles, creationFlags, NULL, NULL, &si, &pi))
+	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles, creationFlags, nullptr, nullptr, &si, &pi))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
 	else
 		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
@@ -64,7 +64,7 @@ void Process::inject(const Library& lib, const bool& verbose)
 	// Allocate space in the remote process for the pathname
 	shared_ptr<void> lpLibFileRemote(VirtualAllocEx(
 		handle(),
-		NULL,
+		nullptr,
 		LibPathLen,
 		MEM_COMMIT,
 		PAGE_READWRITE),
@@ -127,29 +127,23 @@ void Process::inject(const Library& lib, const bool& verbose)
 
 bool Process::is64bit() const
 {
-	// Wenn es ein 64bit-System ist, sind alle Prozesse, für die IsWow64Process
-	// TRUE zurückliefert, 32bit-Prozesse, alle anderen 64bit-Prozesse.
-	// Unter einem 32bit-Windows ist sowieso alles 32bit.
+	SYSTEM_INFO systemInfo = MyGetSystemInfo();
 
-	SYSTEM_INFO siSysInfo = { 0 };
-	typedef BOOL(WINAPI *func)(HANDLE, PBOOL);
-	func _IsWow64Process = 0;
-
-	MyGetSystemInfo(&siSysInfo);
-
-	if (siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64 (AMD or Intel)
+	if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64
 	{
-		BOOL bIsWow64 = FALSE;
+		typedef BOOL(WINAPI *func)(HANDLE, PBOOL);
+
+		BOOL isWow64 = false;
 		Module kernel32dll("kernel32");
+		// In 64bit systems, IsWow64Process returns true for 32 bit processes.
+		func _IsWow64Process = _IsWow64Process = (func)kernel32dll.getProcAddress("IsWow64Process");
 
-		_IsWow64Process = (func)kernel32dll.getProcAddress("IsWow64Process");
-
-		if (!_IsWow64Process(handle(), &bIsWow64))
+		if (!_IsWow64Process(handle(), &isWow64))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("IsWow64Process failed"));
 
-		return bIsWow64 ? 0 : 1;
+		return !isWow64;
 	}
-	else if (siSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
+	else if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
 		return false;
 	else
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id));
