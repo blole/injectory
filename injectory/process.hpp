@@ -76,8 +76,8 @@ public:
 
 	bool is64bit() const;
 
-	Thread createRemoteThread(LPSECURITY_ATTRIBUTES attr, SIZE_T stackSize,
-		LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags)
+	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
+		LPSECURITY_ATTRIBUTES attr = nullptr, SIZE_T stackSize = 0)
 	{
 		DWORD tid;
 		handle_t thandle = CreateRemoteThread(handle(), attr, stackSize, startAddr, parameter, creationFlags, &tid);

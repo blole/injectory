@@ -73,9 +73,10 @@ void Process::inject(const Library& lib, const bool& verbose)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 
 	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
-	Thread loadLibraryThread = createRemoteThread(0, 0, loadLibrary, lpLibFileRemote.get(), 0);
+	Thread loadLibraryThread = createRemoteThread(loadLibrary, lpLibFileRemote.get(), CREATE_SUSPENDED);
 	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	loadLibraryThread.hideFromDebugger();
+	loadLibraryThread.resume();
 	DWORD exitCode = loadLibraryThread.waitForTermination();
 
 	LPVOID lpInjectedModule = ModuleInjectedW(handle(), lib.ntFilename().c_str());

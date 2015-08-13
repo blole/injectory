@@ -32,7 +32,7 @@ void EjectLibrary(DWORD pid, LPVOID module)
 	proc.suspend();
 	proc.tryResumeOnDestruction();
 
-	Thread thread = proc.createRemoteThread(0, 0, lpFreeLibrary, module, 0);
+	Thread thread = proc.createRemoteThread(lpFreeLibrary, module);
 	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	thread.hideFromDebugger();
 	DWORD exitCode = thread.waitForTermination();
