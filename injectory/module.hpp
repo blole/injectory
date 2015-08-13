@@ -6,13 +6,17 @@
 class Module
 {
 private:
-	HMODULE hModule;
+	HMODULE handle_;
 
 public:
+	Module(HMODULE module = nullptr)
+		: handle_(module)
+	{}
+
 	Module(const wstring& moduleName)
-		: hModule(GetModuleHandleW(moduleName.c_str()))
+		: handle_(GetModuleHandleW(moduleName.c_str()))
 	{
-		if (!hModule)
+		if (!handle_)
 			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to '" + std::to_string(moduleName) + "'"));
 	}
 
@@ -20,13 +24,18 @@ public:
 		: Module(std::to_wstring(moduleName))
 	{}
 
+public:
+	HMODULE handle() const
+	{
+		return handle_;
+	}
 
 public:
 	FARPROC getProcAddress(string procName) const
 	{
-		FARPROC procAddress = GetProcAddress(hModule, procName.c_str());
+		FARPROC procAddress = GetProcAddress(handle_, procName.c_str());
 		if (!procAddress)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("ccould not get the address of '"+procName+"'"));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get the address of '"+procName+"'"));
 		return procAddress;
 	}
 
@@ -39,4 +48,10 @@ public:
 public:
 	static const Module kernel32;
 	static const Module ntdll;
+
+public:
+	operator bool() const
+	{
+		return handle() != nullptr;
+	}
 };

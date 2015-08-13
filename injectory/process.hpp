@@ -3,6 +3,7 @@
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
 #include "injectory/library.hpp"
+#include "injectory/module.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
 
@@ -77,10 +78,12 @@ public:
 		suspend(!_resume);
 	}
 
-	void inject(const Library& lib, const bool& verbose = false);
+	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
+	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
 
 	bool is64bit() const;
+	Module findModule(const Library& lib);
 
 	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
 		LPSECURITY_ATTRIBUTES attr = nullptr, SIZE_T stackSize = 0)

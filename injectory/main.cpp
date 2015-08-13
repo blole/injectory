@@ -167,17 +167,17 @@ int main(int argc, char *argv[])
 	catch (const boost::exception& e)
 	{
 		cerr << boost::diagnostic_information(e);
-		return 1;
+		throw;
 	}
 	catch (const exception& e)
 	{
 		cerr << "non-boost exception caught: " << e.what() << endl;
-		return 1;
+		throw;
 	}
 	catch (...)
 	{
 		cerr << "exception of unknown type" << endl;
-		return 1;
+		throw;
 	}
 
 	return 0;

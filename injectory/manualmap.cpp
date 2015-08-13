@@ -18,6 +18,7 @@
 #include "injectory/process.hpp"
 #include "injectory/dllmain_remotecall.hpp"
 #include "injectory/injector_helper.hpp"
+#include "injectory/module.hpp"
 
 #include <stdio.h>
 #include <Windows.h>
@@ -67,16 +68,9 @@ LPVOID GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, PBYTE imageBase
 	return (LPVOID)( imageBase + rva - delta );
 }
 
-void FixIAT(
-	pid_t dwProcessId,
-	HANDLE hProcess,
-	PBYTE imageBase,
-	PIMAGE_NT_HEADERS pNtHeader,
-	PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc
-	)
+void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
 {
 	LPSTR lpModuleName = 0;
-	HMODULE hRemoteModule = 0;
 	WCHAR modulePath[MAX_PATH + 1] = {0};
 	WCHAR moduleNtPath[500 + 1] = {0};
 	WCHAR targetProcPath[MAX_PATH + 1] = {0};
@@ -87,7 +81,7 @@ void FixIAT(
 		//printf("Fixing Imports:\n");
 
 		// get target process path
-		if(!GetModuleFileNameExW(hProcess, (HMODULE)0, targetProcPath, MAX_PATH))
+		if(!GetModuleFileNameExW(handle(), (HMODULE)0, targetProcPath, MAX_PATH))
 			BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get path to target process"));
 
 		pch = wcsrchr(targetProcPath, '\\');
@@ -118,13 +112,9 @@ void FixIAT(
 				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get the NT namespace path"));
 
 			// Module already in process?
-			hRemoteModule = (HMODULE)ModuleInjectedW(hProcess, moduleNtPath);
-			if(!hRemoteModule)
-			{
-				Process::open(dwProcessId).inject(modulePath);
-				
-				hRemoteModule = (HMODULE)ModuleInjectedW(hProcess, moduleNtPath);
-			}
+			Module remoteModule = findModule(moduleNtPath);
+			if (!remoteModule)
+				remoteModule = inject(modulePath);
 
 			itd = (PIMAGE_THUNK_DATA)GetPtrFromRVA(pImgImpDesc->FirstThunk, pNtHeader, imageBase);
 
@@ -132,7 +122,7 @@ void FixIAT(
 			{
 				IMAGE_IMPORT_BY_NAME *iibn =
 					(PIMAGE_IMPORT_BY_NAME)GetPtrFromRVA(itd->u1.AddressOfData, pNtHeader, imageBase);
-				itd->u1.Function = (DWORD_PTR)GetRemoteProcAddress(hProcess, hRemoteModule, (LPCSTR)iibn->Name);
+				itd->u1.Function = (DWORD_PTR)GetRemoteProcAddress(handle(), remoteModule.handle(), (LPCSTR)iibn->Name);
 
 				//printf("Function: %s\n", (LPCSTR)iibn->Name);
 
@@ -300,7 +290,6 @@ CallTlsInitializers(
 void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 {
 	DWORD fileSize = 0;
-	BYTE *dllBin = 0;
 	PIMAGE_NT_HEADERS nt_header = 0;
 	PIMAGE_DOS_HEADER dos_header = 0;
 	LPVOID lpModuleBase = 0;
@@ -370,7 +359,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			nt_header,
 			(PBYTE)dllBin.get());
 		if (nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
-			FixIAT(id(), handle(), (PBYTE)dllBin.get(), nt_header, pImgImpDesc);
+			fixIAT((PBYTE)dllBin.get(), nt_header, pImgImpDesc);
 		
 		// fix relocs
 		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(

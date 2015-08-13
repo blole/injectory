@@ -224,55 +224,6 @@ GetFileNameNtW(
 	return bRet;
 }
 
-LPVOID
-ModuleInjectedW(
-	HANDLE hProcess,
-	LPCWSTR lpLibPathNt)
-{
-	SIZE_T Memory = 0;
-	SYSTEM_INFO sys_info = {0};
-	WCHAR NtMappedFileName[MAX_PATH + 1] = {0};
-	MEMORY_BASIC_INFORMATION mem_basic_info	= {0};
-
-	GetSystemInfo(&sys_info);
-
-	for(Memory = 0;
-		Memory < (SIZE_T)sys_info.lpMaximumApplicationAddress;
-		Memory += mem_basic_info.RegionSize)
-	{
-		SIZE_T vqr = VirtualQueryEx(hProcess, (LPCVOID)Memory, &mem_basic_info,
-			sizeof(MEMORY_BASIC_INFORMATION));
-		if(vqr != 0)
-		{
-			if((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) && 
-				(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
-				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
-			{
-				if(GetMappedFileNameW(hProcess, (HMODULE)mem_basic_info.AllocationBase,
-					NtMappedFileName, MAX_PATH) == 0)
-				{
-					PRINT_ERROR_MSGA("GetMappedFileNameW failed.");
-					return 0;
-				}
-
-				if(wcsncmp(NtMappedFileName, lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
-				{
-					return mem_basic_info.AllocationBase;
-				}
-			}
-		}
-		// VirtualQueryEx failed
-		else
-		{
-			PRINT_ERROR_MSGA("VirtualQueryEx failed.");
-			return 0;
-		}
-			
-	}
-
-	return 0;
-}
-
 VOID
 ListModules(
 	DWORD pid
@@ -359,7 +310,6 @@ ListModules(
 			PRINT_ERROR_MSGA("VirtualQueryEx failed.");
 			return;
 		}
-
 	}
 }
 

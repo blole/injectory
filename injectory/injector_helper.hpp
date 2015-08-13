@@ -45,12 +45,6 @@ GetFileNameNtW(
 	DWORD nSize
 	);
 
-LPVOID
-ModuleInjectedW(
-	HANDLE hProcess,
-	LPCWSTR lpLibPathNt
-	);
-
 VOID
 ListModules(
 	DWORD dwProcessId

@@ -1,6 +1,5 @@
 #include "injectory/process.hpp"
 #include "injectory/injector_helper.hpp"
-#include "injectory/module.hpp"
 #include "injectory/memoryarea.hpp"
 #include <iostream>
 #include <process.h>
@@ -53,10 +52,10 @@ void Process::suspend(bool _suspend) const
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
 
-void Process::inject(const Library& lib, const bool& verbose)
+Module Process::inject(const Library& lib, const bool& verbose)
 {
-	if (ModuleInjectedW(handle(), lib.ntFilename().c_str()) != 0)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id()));
+	if (findModule(lib))
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib) << e_pid(id()));
 
 	// Calculate the number of bytes needed for the DLL's pathname
 	SIZE_T  libPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
@@ -73,18 +72,18 @@ void Process::inject(const Library& lib, const bool& verbose)
 	loadLibraryThread.resume();
 	DWORD exitCode = loadLibraryThread.waitForTermination();
 
-	LPVOID lpInjectedModule = ModuleInjectedW(handle(), lib.ntFilename().c_str());
-	if (lpInjectedModule != 0)
+	Module injectedModule = findModule(lib);
+	if (injectedModule)
 	{
 		IMAGE_NT_HEADERS nt_header = { 0 };
 		IMAGE_DOS_HEADER dos_header = { 0 };
 		SIZE_T NumBytesRead = 0;
 
-		if (!ReadProcessMemory(handle(), lpInjectedModule, &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
+		if (!ReadProcessMemory(handle(), injectedModule.handle(), &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_DOS_HEADER))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
 
-		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)lpInjectedModule + dos_header.e_lfanew);
+		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)injectedModule.handle() + dos_header.e_lfanew);
 		if (!ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_NT_HEADERS))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
@@ -100,15 +99,18 @@ void Process::inject(const Library& lib, const bool& verbose)
 				L"  ExitCodeThread: 0x%08x\n",
 				lib.ntFilename().c_str(),
 				id(),
-				lpInjectedModule,
-				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
+				injectedModule.handle(),
+				(LPVOID)((DWORD_PTR)injectedModule.handle() + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage / 1024.0,
 				nt_header.OptionalHeader.CheckSum,
 				exitCode);
 		}
+		return injectedModule;
 	}
 	else if (exitCode == 0)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));
+	else
+		return Module(); //injected successfully, but module access denied
 }
 
 bool Process::is64bit() const
@@ -131,4 +133,38 @@ bool Process::is64bit() const
 		return false;
 	else
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id()));
+}
+
+
+Module Process::findModule(const Library& lib)
+{
+	SYSTEM_INFO sys_info = { 0 };
+	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
+
+	GetSystemInfo(&sys_info);
+
+	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
+	{
+		SIZE_T vqr = VirtualQueryEx(handle(), (LPCVOID)mem, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION));
+		
+		if (!vqr)
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()) << e_library(lib));
+		else
+		{
+			if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
+				(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
+					PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
+			{
+				WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
+				if (GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase, NtMappedFileName, MAX_PATH) == 0)
+					BOOST_THROW_EXCEPTION(ex_injection() << e_text("GetMappedFileNameW failed") << e_pid(id()) << e_library(lib));
+
+				LPCWSTR lpLibPathNt = lib.ntFilename().c_str();
+				if (wcsncmp(NtMappedFileName, lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
+					return Module((HMODULE)mem_basic_info.AllocationBase);
+			}
+		}
+	}
+	
+	return Module(); //access denied
 }
