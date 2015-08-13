@@ -19,6 +19,7 @@
 #include "injectory/dllmain_remotecall.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/module.hpp"
+#include "injectory/memoryarea.hpp"
 
 #include <stdio.h>
 #include <Windows.h>
@@ -292,7 +293,6 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 	DWORD fileSize = 0;
 	PIMAGE_NT_HEADERS nt_header = 0;
 	PIMAGE_DOS_HEADER dos_header = 0;
-	LPVOID lpModuleBase = 0;
 
 	PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc = 0;
 	PIMAGE_BASE_RELOCATION pImgBaseReloc = 0;
@@ -344,14 +344,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("invalid PE header"));
 
 		// Allocate space for the module in the remote process
-		lpModuleBase = VirtualAllocEx(
-			handle(),
-			nullptr,
-			nt_header->OptionalHeader.SizeOfImage, 
-			MEM_COMMIT | MEM_RESERVE, 
-			PAGE_EXECUTE_READWRITE);
-		if(!lpModuleBase)
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not allocate memory in remote process"));
+		MemoryArea moduleBase = MemoryArea::alloc(*this, nt_header->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE, false);
 		
 		// fix imports
 		pImgImpDesc = (PIMAGE_IMPORT_DESCRIPTOR)GetPtrFromRVA(
@@ -368,7 +361,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			(PBYTE)dllBin.get());
 		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
 		{
-			if(!FixRelocations(dllBin.get(), lpModuleBase, nt_header, pImgBaseReloc))
+			if(!FixRelocations(dllBin.get(), moduleBase.address(), nt_header, pImgBaseReloc))
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error fixing relocations"));
 		}
 
@@ -379,14 +372,14 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 				sizeof(nt_header->FileHeader) +
 				sizeof(nt_header->Signature);
 			
-			if(!WriteProcessMemory(handle(), lpModuleBase, dllBin.get(), nSize, &NumBytesWritten) ||
+			if(!WriteProcessMemory(handle(), moduleBase.address(), dllBin.get(), nSize, &NumBytesWritten) ||
 					NumBytesWritten != nSize)
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not write to memory in remote process"));
 		}
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)
-		if(!MapSections(handle(), lpModuleBase, dllBin.get(), nt_header))
+		if(!MapSections(handle(), moduleBase.address(), dllBin.get(), nt_header))
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error mapping sections"));
 
 		// call all tls callbacks
@@ -397,15 +390,15 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			(PBYTE)dllBin.get());
 		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
 		{
-			if(!CallTlsInitializers(dllBin.get(), nt_header, handle(), (HMODULE)lpModuleBase, DLL_PROCESS_ATTACH, pImgTlsDir))
+			if(!CallTlsInitializers(dllBin.get(), nt_header, handle(), (HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir))
 				BOOST_THROW_EXCEPTION(ex_map_remote() << e_text("@Call TLS initializers."));
 		}
 
 		// call entry point
 		if(!RemoteDllMainCall(
 				handle(),
-				(LPVOID)( (DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
-				(HMODULE)lpModuleBase, 1, 0))
+				(LPVOID)( (DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
+				(HMODULE)moduleBase.address(), 1, 0))
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("@Call DllMain."));
 
 		if (verbose)
@@ -418,8 +411,8 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 				L"  CheckSum:       0x%08x\n",
 				lib.path.c_str(),
 				id(),
-				lpModuleBase,
-				(LPVOID)((DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
+				moduleBase.address(),
+				(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
 				nt_header->OptionalHeader.SizeOfImage / 1024.0,
 				nt_header->OptionalHeader.CheckSum);
 		}

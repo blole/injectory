@@ -33,11 +33,6 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
 }
 
-MemoryArea Process::allocMemory(SIZE_T size, DWORD allocationType, DWORD protect, LPVOID address)
-{
-	return MemoryArea::alloc(*this, size, allocationType, protect, address);
-}
-
 void Process::suspend(bool _suspend) const
 {
 	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
@@ -56,7 +51,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	SIZE_T  libPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
 
 	// Allocate space in the remote process for the pathname
-	MemoryArea libFileRemote = allocMemory(libPathLen, MEM_COMMIT, PAGE_READWRITE);
+	MemoryArea libFileRemote = MemoryArea::alloc(*this, libPathLen, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
 	libFileRemote.flushInstructionCache(libPathLen);
 
