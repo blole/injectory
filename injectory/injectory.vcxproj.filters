@@ -38,6 +38,9 @@
     <ClCompile Include="thread.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="module.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp">

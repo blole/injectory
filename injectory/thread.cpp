@@ -15,12 +15,10 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 
 void Thread::hideFromDebugger() const
 {
-	typedef LONG(NTAPI* func)(HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID ThreadInformation, ULONG ThreadInformationLength);
+	//typedef LONG(HANDLE, MY_THREAD_INFORMATION_CLASS, ThreadInformation, ThreadInformationLength);
+	auto ntSetInformationThread = Module::ntdll.getProcAddress<LONG, HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG>("NtSetInformationThread");
 
-	Module ntDll("ntdll");
-	func ntSetInformationThread = (func) ntDll.getProcAddress("NtSetInformationThread");
-
-	LONG ntStatus = (*ntSetInformationThread)(handle(), ThreadHideFromDebugger, 0, 0);
+	LONG ntStatus = ntSetInformationThread(handle(), ThreadHideFromDebugger, 0, 0);
 	if (!NT_SUCCESS(ntStatus))
 		BOOST_THROW_EXCEPTION(ex_hide() << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id));
 }

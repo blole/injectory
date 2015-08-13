@@ -36,25 +36,15 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 
 void Process::suspend(bool _suspend) const
 {
-	typedef LONG(NTAPI* func)(HANDLE);
-	func suspend_resume;
-	Module ntDll("ntdll");
-
-	if (_suspend)
-		suspend_resume = (func)ntDll.getProcAddress("NtSuspendProcess");
-	else
-		suspend_resume = (func)ntDll.getProcAddress("NtResumeProcess");
-
-	LONG ntStatus = (*suspend_resume)(handle());
+	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
+	auto func = Module::ntdll.getProcAddress<LONG, HANDLE>(funcName);
+	LONG ntStatus = func(handle());
 	if (!NT_SUCCESS(ntStatus))
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
 }
 
 void Process::inject(const Library& lib, const bool& verbose)
 {
-	Module kernel32dll("kernel32");
-	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)kernel32dll.getProcAddress("LoadLibraryW");
-
 	if (ModuleInjectedW(handle(), lib.ntFilename().c_str()) != 0)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id));
 
@@ -82,6 +72,7 @@ void Process::inject(const Library& lib, const bool& verbose)
 	if (!FlushInstructionCache(handle(), lpLibFileRemote.get(), LibPathLen))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 
+	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
 	Thread loadLibraryThread = createRemoteThread(0, 0, loadLibrary, lpLibFileRemote.get(), 0);
 	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	loadLibraryThread.hideFromDebugger();
@@ -131,14 +122,12 @@ bool Process::is64bit() const
 
 	if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64
 	{
-		typedef BOOL(WINAPI *func)(HANDLE, PBOOL);
+		// In 64bit systems, IsWow64Process returns true for 32 bit processes.
 
 		BOOL isWow64 = false;
-		Module kernel32dll("kernel32");
-		// In 64bit systems, IsWow64Process returns true for 32 bit processes.
-		func _IsWow64Process = _IsWow64Process = (func)kernel32dll.getProcAddress("IsWow64Process");
 
-		if (!_IsWow64Process(handle(), &isWow64))
+		auto isWow64Process = Module::kernel32.getProcAddress<BOOL, HANDLE, PBOOL>("IsWow64Process");
+		if (!isWow64Process(handle(), &isWow64))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("IsWow64Process failed"));
 
 		return !isWow64;
