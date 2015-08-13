@@ -77,6 +77,7 @@ public:
 	}
 
 	void inject(const Library& lib, const bool& verbose = false);
+	void mapRemoteModule(const Library& lib, const bool& verbose = false);
 
 	bool is64bit() const;
 

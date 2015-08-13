@@ -24,7 +24,6 @@
 
 #include "injectory/common.hpp"
 #include "injectory/generic_injector.hpp"
-#include "injectory/manualmap.hpp"
 
 struct INJ_DATA
 {

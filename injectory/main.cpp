@@ -22,7 +22,6 @@
 #include "injectory/findproc.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/generic_injector.hpp"
-#include "injectory/manualmap.hpp"
 #include "injectory/process.hpp"
 
 #include <boost/program_options.hpp>
@@ -146,7 +145,7 @@ int main(int argc, char *argv[])
 				for (const Library& lib : vars["lib"].as<vector<path>>())
 				{
 					if (mm)
-						MapRemoteModule(proc, lib.path);
+						proc.mapRemoteModule(lib, verbose);
 					else
 						proc.inject(lib, verbose);
 				}

@@ -15,17 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
-#include "injectory/manualmap.hpp"
-#include "injectory/common.hpp"
-#include "injectory/exception.hpp"
-#include "injectory/dllmain_remotecall.hpp"
-#include "injectory/generic_injector.hpp"
-#include "injectory/injector_helper.hpp"
 #include "injectory/process.hpp"
+#include "injectory/dllmain_remotecall.hpp"
+#include "injectory/injector_helper.hpp"
 
 #include <stdio.h>
 #include <Windows.h>
-#include <TlHelp32.h>
 
 using namespace std;
 
@@ -302,7 +297,7 @@ CallTlsInitializers(
 	return TRUE;
 }
 
-void MapRemoteModule(const pid_t& pid, const path& lib)
+void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 {
 	DWORD fileSize = 0;
 	BYTE *dllBin = 0;
@@ -316,33 +311,21 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 
 	try
 	{
-		// Get a handle for the target process.
-		shared_ptr<void> hProcess(OpenProcess(
-			PROCESS_QUERY_INFORMATION	|	// Required by Alpha
-			PROCESS_CREATE_THREAD		|	// For CreateRemoteThread
-			PROCESS_VM_OPERATION		|	// For VirtualAllocEx/VirtualFreeEx
-			PROCESS_VM_WRITE			|	// For WriteProcessMemory
-			PROCESS_VM_READ,
-			FALSE, 
-			pid),
-			CloseHandle);
-		if(!hProcess.get())
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not get handle to process") << e_pid(pid));
-
 		shared_ptr<void> hFile(CreateFileW(
-			lib.c_str(),
+			lib.path.c_str(),
 			GENERIC_READ,
 			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			NULL,
+			nullptr,
 			OPEN_EXISTING,
 			FILE_ATTRIBUTE_NORMAL,
-			NULL),
+			nullptr),
 			CloseHandle);
+
 		if(hFile.get() == INVALID_HANDLE_VALUE)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("CreateFileW failed"));
 
-		if(GetFileAttributesW(lib.c_str()) & FILE_ATTRIBUTE_COMPRESSED)
-			fileSize = GetCompressedFileSizeW(lib.c_str(), NULL);
+		if(GetFileAttributesW(lib.path.c_str()) & FILE_ATTRIBUTE_COMPRESSED)
+			fileSize = GetCompressedFileSizeW(lib.path.c_str(), NULL);
 		else
 			fileSize = GetFileSize(hFile.get(), NULL);
 
@@ -356,7 +339,7 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 			if(!ReadFile(hFile.get(), dllBin.get(), fileSize, &NumBytesRead, FALSE))
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("ReadFile failed"));
 		}
-	
+		
 		dos_header = (PIMAGE_DOS_HEADER)dllBin.get();
 		
 		// Make sure we got a valid DOS header
@@ -373,8 +356,8 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 
 		// Allocate space for the module in the remote process
 		lpModuleBase = VirtualAllocEx(
-			hProcess.get(),
-			NULL, 
+			handle(),
+			nullptr,
 			nt_header->OptionalHeader.SizeOfImage, 
 			MEM_COMMIT | MEM_RESERVE, 
 			PAGE_EXECUTE_READWRITE);
@@ -387,7 +370,7 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 			nt_header,
 			(PBYTE)dllBin.get());
 		if (nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
-			FixIAT(pid, hProcess.get(), (PBYTE)dllBin.get(), nt_header, pImgImpDesc);
+			FixIAT(id(), handle(), (PBYTE)dllBin.get(), nt_header, pImgImpDesc);
 		
 		// fix relocs
 		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(
@@ -407,14 +390,14 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 				sizeof(nt_header->FileHeader) +
 				sizeof(nt_header->Signature);
 			
-			if(!WriteProcessMemory(hProcess.get(), lpModuleBase, dllBin.get(), nSize, &NumBytesWritten) ||
+			if(!WriteProcessMemory(handle(), lpModuleBase, dllBin.get(), nSize, &NumBytesWritten) ||
 					NumBytesWritten != nSize)
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not write to memory in remote process"));
 		}
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)
-		if(!MapSections(hProcess.get(), lpModuleBase, dllBin.get(), nt_header))
+		if(!MapSections(handle(), lpModuleBase, dllBin.get(), nt_header))
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error mapping sections"));
 
 		// call all tls callbacks
@@ -425,33 +408,36 @@ void MapRemoteModule(const pid_t& pid, const path& lib)
 			(PBYTE)dllBin.get());
 		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
 		{
-			if(!CallTlsInitializers(dllBin.get(), nt_header, hProcess.get(), (HMODULE)lpModuleBase, DLL_PROCESS_ATTACH, pImgTlsDir))
+			if(!CallTlsInitializers(dllBin.get(), nt_header, handle(), (HMODULE)lpModuleBase, DLL_PROCESS_ATTACH, pImgTlsDir))
 				BOOST_THROW_EXCEPTION(ex_map_remote() << e_text("@Call TLS initializers."));
 		}
 
 		// call entry point
 		if(!RemoteDllMainCall(
-				hProcess.get(),
+				handle(),
 				(LPVOID)( (DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
 				(HMODULE)lpModuleBase, 1, 0))
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("@Call DllMain."));
 
-		wprintf(
-			L"Successfully injected (%s | PID: %d):\n\n"
-			L"  AllocationBase: 0x%p\n"
-			L"  EntryPoint:     0x%p\n"
-			L"  SizeOfImage:      %.1f kB\n"
-			L"  CheckSum:       0x%08x\n",
-			lib.c_str(),
-			pid,
-			lpModuleBase,
-			(LPVOID)((DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
-			nt_header->OptionalHeader.SizeOfImage/1024.0,
-			nt_header->OptionalHeader.CheckSum);
+		if (verbose)
+		{
+			wprintf(
+				L"Successfully injected (%s | PID: %d):\n\n"
+				L"  AllocationBase: 0x%p\n"
+				L"  EntryPoint:     0x%p\n"
+				L"  SizeOfImage:      %.1f kB\n"
+				L"  CheckSum:       0x%08x\n",
+				lib.path.c_str(),
+				id(),
+				lpModuleBase,
+				(LPVOID)((DWORD_PTR)lpModuleBase + nt_header->OptionalHeader.AddressOfEntryPoint),
+				nt_header->OptionalHeader.SizeOfImage / 1024.0,
+				nt_header->OptionalHeader.CheckSum);
+		}
 	}
 	catch (const boost::exception& e)
 	{
-		e << e_text("failed to map the PE file into the remote address space of a process") << e_file_path(lib) << e_pid(pid);
+		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib) << e_pid(id());
 		throw;
 	}
 }

@@ -41,6 +41,9 @@
     <ClCompile Include="module.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="exception.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain_remotecall.hpp">
@@ -53,9 +56,6 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="injector_helper.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="manualmap.hpp">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="exception.hpp">

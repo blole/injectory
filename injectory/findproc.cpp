@@ -52,9 +52,9 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 			if(injdata.inject)
 			{
 				if (injdata.mm)
-					MapRemoteModule(dwPid, injdata.libpath);
+					Process::open(dwPid).mapRemoteModule(injdata.libpath);
 				else
-					Process::open(dwPid).inject(Library(injdata.libpath));
+					Process::open(dwPid).inject(injdata.libpath);
 			}
 			else
 			{
@@ -93,9 +93,9 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 			if(injdata.inject)
 			{
 				if(injdata.mm)
-					MapRemoteModule(dwPid, injdata.libpath);
+					Process::open(dwPid).mapRemoteModule(injdata.libpath);
 				else
-					Process::open(dwPid).inject(Library(injdata.libpath));
+					Process::open(dwPid).inject(injdata.libpath);
 			}
 			else
 			{
@@ -178,9 +178,9 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 				if(inject)
 				{
 					if(mm)
-						MapRemoteModule(pid, lpLibPath);
+						Process::open(pid).mapRemoteModule(lpLibPath);
 					else
-						Process::open(pid).inject(Library(lpLibPath));
+						Process::open(pid).inject(lpLibPath);
 				}
 				else
 				{
