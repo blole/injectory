@@ -6,30 +6,44 @@ class MemoryArea
 {
 private:
 	Process process; //to keep from closing the process handle
-	shared_ptr<void> handle_;
+	shared_ptr<void> address_;
+	SIZE_T size;
 
-public:
-	explicit MemoryArea(Process process, handle_t handle)
+private:
+	explicit MemoryArea(Process process, void* address, SIZE_T size)
 		: process(process)
-		, handle_(handle, bind(VirtualFreeEx, process.handle(), std::placeholders::_1, 0, MEM_RELEASE))
+		, address_(address, bind(VirtualFreeEx, process.handle(), std::placeholders::_1, 0, MEM_RELEASE))
+		, size(size)
 	{}
 
 public:
-	handle_t handle() const
+	static MemoryArea alloc(const Process& proc, SIZE_T size, DWORD allocationType, DWORD protect, LPVOID address = nullptr)
 	{
-		return handle_.get();
+		LPVOID area = VirtualAllocEx(proc.handle(), address, size, allocationType, protect);
+
+		if (!area)
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
+		else
+			return MemoryArea(proc, area, size);
+	}
+
+
+public:
+	void* address() const
+	{
+		return address_.get();
 	}
 
 	void write(LPCVOID from, SIZE_T size)
 	{
 		SIZE_T writtenSize = 0;
-		if (!WriteProcessMemory(process.handle(), handle(), from, size, &writtenSize) || writtenSize != size)
+		if (!WriteProcessMemory(process.handle(), address(), from, size, &writtenSize) || writtenSize != size)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
 	}
 
 	void flushInstructionCache(SIZE_T size)
 	{
-		if (!FlushInstructionCache(process.handle(), handle(), size))
+		if (!FlushInstructionCache(process.handle(), address(), size))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 	}
 };

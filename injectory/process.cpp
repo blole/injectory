@@ -35,12 +35,7 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 
 MemoryArea Process::allocMemory(SIZE_T size, DWORD allocationType, DWORD protect, LPVOID address)
 {
-	LPVOID area = VirtualAllocEx(handle(), address, size, allocationType, protect);
-	
-	if (!area)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
-	else
-		return MemoryArea(*this, area);
+	return MemoryArea::alloc(*this, size, allocationType, protect, address);
 }
 
 void Process::suspend(bool _suspend) const
@@ -66,7 +61,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	libFileRemote.flushInstructionCache(libPathLen);
 
 	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
-	Thread loadLibraryThread = createRemoteThread(loadLibrary, libFileRemote.handle(), CREATE_SUSPENDED);
+	Thread loadLibraryThread = createRemoteThread(loadLibrary, libFileRemote.address(), CREATE_SUSPENDED);
 	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	loadLibraryThread.hideFromDebugger();
 	loadLibraryThread.resume();
