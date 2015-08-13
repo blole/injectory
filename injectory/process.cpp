@@ -1,7 +1,7 @@
 #include "injectory/process.hpp"
 #include "injectory/injector_helper.hpp"
-#include "injectory/generic_injector.hpp"
 #include "injectory/module.hpp"
+#include "injectory/memoryarea.hpp"
 #include <iostream>
 #include <process.h>
 
@@ -34,6 +34,16 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
 }
 
+MemoryArea Process::allocMemory(SIZE_T size, DWORD allocationType, DWORD protect, LPVOID address)
+{
+	LPVOID area = VirtualAllocEx(handle(), address, size, allocationType, protect);
+	
+	if (!area)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
+	else
+		return MemoryArea(*this, area);
+}
+
 void Process::suspend(bool _suspend) const
 {
 	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
@@ -49,31 +59,15 @@ void Process::inject(const Library& lib, const bool& verbose)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id()));
 
 	// Calculate the number of bytes needed for the DLL's pathname
-	SIZE_T  LibPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
+	SIZE_T  libPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
 
 	// Allocate space in the remote process for the pathname
-	shared_ptr<void> lpLibFileRemote(VirtualAllocEx(
-		handle(),
-		nullptr,
-		LibPathLen,
-		MEM_COMMIT,
-		PAGE_READWRITE),
-		bind(VirtualFreeEx, handle(), std::placeholders::_1, 0, MEM_RELEASE));
-
-	if (!lpLibFileRemote)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
-
-	{
-		SIZE_T NumBytesWritten = 0;
-		if (!WriteProcessMemory(handle(), lpLibFileRemote.get(), (LPCVOID)(lib.path.c_str()), LibPathLen, &NumBytesWritten) || NumBytesWritten != LibPathLen)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
-	}
-
-	if (!FlushInstructionCache(handle(), lpLibFileRemote.get(), LibPathLen))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
+	MemoryArea libFileRemote = allocMemory(libPathLen, MEM_COMMIT, PAGE_READWRITE);
+	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
+	libFileRemote.flushInstructionCache(libPathLen);
 
 	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
-	Thread loadLibraryThread = createRemoteThread(loadLibrary, lpLibFileRemote.get(), CREATE_SUSPENDED);
+	Thread loadLibraryThread = createRemoteThread(loadLibrary, libFileRemote.handle(), CREATE_SUSPENDED);
 	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	loadLibraryThread.hideFromDebugger();
 	loadLibraryThread.resume();

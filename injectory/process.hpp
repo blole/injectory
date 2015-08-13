@@ -7,6 +7,7 @@
 #include <boost/optional.hpp>
 
 struct ProcessWithThread;
+class MemoryArea;
 
 class Process
 {
@@ -92,6 +93,7 @@ public:
 			return Thread(tid, thandle);
 	}
 
+	MemoryArea allocMemory(SIZE_T size, DWORD allocationType, DWORD protect, LPVOID address = nullptr);
 
 
 public:

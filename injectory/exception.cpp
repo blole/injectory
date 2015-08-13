@@ -1,5 +1,6 @@
 #include "injectory/exception.hpp"
 #include "injectory/library.hpp"
+#include <boost/algorithm/string/trim.hpp>
 
 e_library::e_library(const Library& lib)
 	: error_info(lib.path)

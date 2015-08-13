@@ -141,6 +141,7 @@
     <ClInclude Include="injector_helper.hpp" />
     <ClInclude Include="library.hpp" />
     <ClInclude Include="common.hpp" />
+    <ClInclude Include="memoryarea.hpp" />
     <ClInclude Include="module.hpp" />
     <ClInclude Include="process.hpp" />
     <ClInclude Include="thread.hpp" />

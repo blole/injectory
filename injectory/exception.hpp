@@ -3,7 +3,6 @@
 
 #include <winnt.h>
 #include <boost/exception/all.hpp>
-#include <boost/algorithm/string/trim.hpp>
 
 class Library;
 
