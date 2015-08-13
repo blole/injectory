@@ -28,87 +28,41 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 	CHAR name[500] = {0};
 	struct INJ_DATA injdata = *(struct INJ_DATA*)lParam;
 
-	// injection via windowtitle
-	if(injdata.mode == 1)
-	{
+	if (injdata.mode == 1) // injection via windowtitle
 		GetWindowTextA(hwnd, name, 500 * sizeof(CHAR));
+	else if (injdata.mode == 2) // injection via windowclass
+		GetClassNameA(hwnd, name, 500 * sizeof(CHAR));
 
-		if(strncmp((LPCSTR)injdata.name, name, strlen(name) + 1) == 0)
-		{
-			DWORD dwPid = 0;
-			GetWindowThreadProcessId(hwnd, &dwPid);
-			if(dwPid == 0)
-			{
-				PRINT_ERROR_MSGA("Could not get ProcessId from window handle (hwnd: 0x%p).",
-					hwnd);
-			}
-
-			if(Process::open(dwPid).is64bit() != is64bit)
-			{
-				PRINT_TARGET_PROC_ERROR(dwPid);
-				return TRUE;
-			}
-
-			if(injdata.inject)
-			{
-				if (injdata.mm)
-					Process::open(dwPid).mapRemoteModule(injdata.libpath);
-				else
-					Process::open(dwPid).inject(injdata.libpath);
-			}
-			else
-			{
-				if(injdata.module_address)
-				{
-					EjectLibrary(dwPid, injdata.module_address);
-				}
-				else
-				{
-					EjectLibraryA(dwPid, injdata.libpath);
-				}
-			}
-		}
+	DWORD pid = 0;
+	
+	if (strncmp((LPCSTR)injdata.name, name, strlen(name) + 1) == 0)
+	{
+		GetWindowThreadProcessId(hwnd, &pid);
+		if (pid == 0)
+			PRINT_ERROR_MSGA("Could not get ProcessId from window handle (hwnd: 0x%p).", hwnd);
 	}
 
-	// injection via windowclass
-	if(injdata.mode == 2)
+	Process proc = Process::open(pid);
+
+	if (Process::open(pid).is64bit() != is64bit)
 	{
-		GetClassNameA(hwnd, name, 500 * sizeof(CHAR));
-		if(strncmp((LPCSTR)injdata.name, name, strlen(name) + 1) == 0)
-		{
-			DWORD dwPid = 0;
-			GetWindowThreadProcessId(hwnd, &dwPid);
-			if(dwPid == 0)
-			{
-				PRINT_ERROR_MSGA("Could not get ProcessId from window handle (hwnd: 0x%p).",
-					hwnd);
-			}
+		PRINT_TARGET_PROC_ERROR(pid);
+		return TRUE;
+	}
 
-			if(Process::open(dwPid).is64bit() != is64bit)
-			{
-				PRINT_TARGET_PROC_ERROR(dwPid);
-				return TRUE;
-			}
-
-			if(injdata.inject)
-			{
-				if(injdata.mm)
-					Process::open(dwPid).mapRemoteModule(injdata.libpath);
-				else
-					Process::open(dwPid).inject(injdata.libpath);
-			}
-			else
-			{
-				if(injdata.module_address)
-				{
-					EjectLibrary(dwPid, injdata.module_address);
-				}
-				else
-				{
-					EjectLibraryA(dwPid, injdata.libpath);
-				}
-			}
-		}
+	if (injdata.inject)
+	{
+		if (injdata.mm)
+			proc.mapRemoteModule(injdata.libpath);
+		else
+			proc.inject(injdata.libpath);
+	}
+	else
+	{
+		if (injdata.module_address)
+			proc.eject(Module((HMODULE)injdata.module_address));
+		else
+			proc.eject(injdata.libpath);
 	}
 
 	return TRUE;
@@ -185,14 +139,9 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 				else
 				{
 					if (lpModule)
-						EjectLibrary(pid, lpModule);
+						Process::open(pid).eject(Module((HMODULE)lpModule));
 					else
-					{
-						if(!EjectLibraryA(pid, lpLibPath))
-						{
-							PRINT_ERROR_MSGA("Ejection failed. (PID: %d)", pid);
-						}
-					}
+						Process::open(pid).eject(lpLibPath);
 				}
 			}
 		}

@@ -103,6 +103,33 @@ Module Process::inject(const Library& lib, const bool& verbose)
 		return Module(); //injected successfully, but module access denied
 }
 
+void Process::eject(const Module& module)
+{
+	LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("FreeLibrary");
+
+	suspend();
+	Process proc = *this; //to resume
+	proc.tryResumeOnDestruction();
+
+	Thread thread = createRemoteThread(lpFreeLibrary, module.handle(), CREATE_SUSPENDED);
+	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
+	thread.hideFromDebugger();
+	thread.resume();
+	DWORD exitCode = thread.waitForTermination();
+
+	if (!exitCode) // - invalid PE header?
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to FreeLibrary in remote process failed"));
+}
+
+void Process::eject(const Library& lib)
+{
+	Module module = findModule(lib);
+	if (module)
+		eject(module);
+	else
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("error getting handle to module for ejecting") << e_library(lib));
+}
+
 bool Process::is64bit() const
 {
 	SYSTEM_INFO systemInfo = MyGetSystemInfo();
@@ -125,34 +152,26 @@ bool Process::is64bit() const
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id()));
 }
 
-
 Module Process::findModule(const Library& lib)
 {
-	SYSTEM_INFO sys_info = { 0 };
+	WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
-
-	GetSystemInfo(&sys_info);
+	SYSTEM_INFO sys_info = getSystemInfo();
 
 	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
 	{
-		SIZE_T vqr = VirtualQueryEx(handle(), (LPCVOID)mem, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION));
-		
-		if (!vqr)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()) << e_library(lib));
-		else
-		{
-			if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
-				(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
-					PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
-			{
-				WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
-				if (GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase, NtMappedFileName, MAX_PATH) == 0)
-					BOOST_THROW_EXCEPTION(ex_injection() << e_text("GetMappedFileNameW failed") << e_pid(id()) << e_library(lib));
+		mem_basic_info = memBasicInfo((LPCVOID)mem);
 
-				LPCWSTR lpLibPathNt = lib.ntFilename().c_str();
-				if (wcsncmp(NtMappedFileName, lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
-					return Module((HMODULE)mem_basic_info.AllocationBase);
-			}
+		if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
+			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
+				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
+		{
+			if (GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase, NtMappedFileName, MAX_PATH) == 0)
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("GetMappedFileNameW failed") << e_pid(id()) << e_library(lib));
+
+			LPCWSTR lpLibPathNt = lib.ntFilename().c_str();
+			if (wcsncmp(NtMappedFileName, lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
+				return Module((HMODULE)mem_basic_info.AllocationBase);
 		}
 	}
 	

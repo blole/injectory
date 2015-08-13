@@ -23,7 +23,6 @@
 #include <TlHelp32.h>
 
 #include "injectory/common.hpp"
-#include "injectory/generic_injector.hpp"
 
 struct INJ_DATA
 {

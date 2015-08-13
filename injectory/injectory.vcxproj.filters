@@ -20,9 +20,6 @@
     <ClCompile Include="injector_helper.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="generic_injector.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="findproc.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -47,9 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="findproc.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="generic_injector.hpp">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="injector_helper.hpp">

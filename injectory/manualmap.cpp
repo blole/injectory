@@ -358,16 +358,9 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 		}
 
 		// Write the PE header into the remote process's memory space
-		{
-			SIZE_T NumBytesWritten = 0;
-			SIZE_T nSize = nt_header->FileHeader.SizeOfOptionalHeader +
-				sizeof(nt_header->FileHeader) +
-				sizeof(nt_header->Signature);
-			
-			if(!WriteProcessMemory(handle(), moduleBase.address(), dllBin.get(), nSize, &NumBytesWritten) ||
-					NumBytesWritten != nSize)
-				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not write to memory in remote process"));
-		}
+		moduleBase.write(dllBin.get(), nt_header->FileHeader.SizeOfOptionalHeader +
+			sizeof(nt_header->FileHeader) +
+			sizeof(nt_header->Signature));
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)

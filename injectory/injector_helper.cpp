@@ -224,91 +224,54 @@ GetFileNameNtW(
 	return bRet;
 }
 
-VOID
-ListModules(
-	DWORD pid
-	)
+void Process::listModules()
 {
-	SIZE_T Memory = 0;
-	SYSTEM_INFO sys_info = {0};
 	WCHAR ntMappedFileName[MAX_PATH + 1] = {0};
-	MEMORY_BASIC_INFORMATION mem_basic_info	= {0};
-	HANDLE hProcess = 0;
-	PVOID ab = (PVOID)0;
-
-	// Get a handle for the target process.
-	hProcess = OpenProcess(
-		PROCESS_QUERY_INFORMATION	|	// Required by Alpha
-		PROCESS_CREATE_THREAD		|	// For CreateRemoteThread
-		PROCESS_VM_OPERATION		|	// For VirtualAllocEx/VirtualFreeEx
-		PROCESS_VM_WRITE			|	// For WriteProcessMemory
-		PROCESS_VM_READ,
-		FALSE, 
-		pid);
-	if(!hProcess)
-	{
-		PRINT_ERROR_MSGA("Could not get handle to process (PID: %d).", pid);
-		return;
-	}
-
-	GetSystemInfo(&sys_info);
+	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
+	SYSTEM_INFO sys_info = getSystemInfo();
 
 	printf("BASE\t\t SIZE\t\t  MODULE\n\n");
 
-	for(Memory = 0;
-		Memory < (SIZE_T)sys_info.lpMaximumApplicationAddress;
-		Memory += mem_basic_info.RegionSize)
+	for(SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
 	{
-		ab = mem_basic_info.AllocationBase;
+		PVOID ab = mem_basic_info.AllocationBase;
+		mem_basic_info = memBasicInfo((LPCVOID)mem);
+		if (ab == mem_basic_info.AllocationBase)
+			continue;
 
-		if(VirtualQueryEx(hProcess, (LPCVOID)Memory, &mem_basic_info,
-			sizeof(MEMORY_BASIC_INFORMATION)))
+		if(GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase,
+			ntMappedFileName, MAX_PATH))
 		{
-			if(ab == mem_basic_info.AllocationBase)
-			{
-				continue;
-			}
+			IMAGE_NT_HEADERS nt_header = {0};
+			IMAGE_DOS_HEADER dos_header = {0};
+			SIZE_T NumBytesRead = 0;
+			LPVOID lpNtHeaderAddress = 0;
+			//WCHAR *pModuleName = (WCHAR)0;
 
-			if(GetMappedFileNameW(hProcess, (HMODULE)mem_basic_info.AllocationBase,
-				ntMappedFileName, MAX_PATH))
-			{
-				IMAGE_NT_HEADERS nt_header = {0};
-				IMAGE_DOS_HEADER dos_header = {0};
-				SIZE_T NumBytesRead = 0;
-				LPVOID lpNtHeaderAddress = 0;
-				//WCHAR *pModuleName = (WCHAR)0;
-
-				//pModuleName = wcsrchr(ntMappedFileName, '\\');
-				//if(!pModuleName)
-				//{
-				//	return;
-				//}
-				//++pModuleName;
+			//pModuleName = wcsrchr(ntMappedFileName, '\\');
+			//if(!pModuleName)
+			//{
+			//	return;
+			//}
+			//++pModuleName;
 				
-				if(ReadProcessMemory(hProcess, mem_basic_info.AllocationBase, &dos_header,
-					sizeof(IMAGE_DOS_HEADER), &NumBytesRead) &&
-					NumBytesRead == sizeof(IMAGE_DOS_HEADER))
-				{
-					lpNtHeaderAddress = (LPVOID)( (DWORD_PTR)mem_basic_info.AllocationBase +
-						dos_header.e_lfanew );
+			if(ReadProcessMemory(handle(), mem_basic_info.AllocationBase, &dos_header,
+				sizeof(IMAGE_DOS_HEADER), &NumBytesRead) &&
+				NumBytesRead == sizeof(IMAGE_DOS_HEADER))
+			{
+				lpNtHeaderAddress = (LPVOID)( (DWORD_PTR)mem_basic_info.AllocationBase +
+					dos_header.e_lfanew );
 
-					if(ReadProcessMemory(hProcess, lpNtHeaderAddress, &nt_header,
-						sizeof(IMAGE_NT_HEADERS), &NumBytesRead) &&
-						NumBytesRead == sizeof(IMAGE_NT_HEADERS))
-					{
-						wprintf(L"0x%p, %.1f kB, %s\n",
-							mem_basic_info.AllocationBase,
-							nt_header.OptionalHeader.SizeOfImage/1024.0,
-							ntMappedFileName);
-					}
+				if(ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header,
+					sizeof(IMAGE_NT_HEADERS), &NumBytesRead) &&
+					NumBytesRead == sizeof(IMAGE_NT_HEADERS))
+				{
+					wprintf(L"0x%p, %.1f kB, %s\n",
+						mem_basic_info.AllocationBase,
+						nt_header.OptionalHeader.SizeOfImage/1024.0,
+						ntMappedFileName);
 				}
 			}
-		}
-		// VirtualQueryEx failed
-		else
-		{
-			PRINT_ERROR_MSGA("VirtualQueryEx failed.");
-			return;
 		}
 	}
 }

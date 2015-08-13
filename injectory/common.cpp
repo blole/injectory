@@ -108,6 +108,13 @@ int parse_int(const char *str)
 	return int_ret;
 }
 
+SYSTEM_INFO getSystemInfo()
+{
+	SYSTEM_INFO sys_info = { 0 };
+	GetSystemInfo(&sys_info);
+	return sys_info;
+}
+
 char *alloc_stra(char *in_str)
 {
 	size_t len = 0;

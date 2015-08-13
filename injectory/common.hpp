@@ -75,3 +75,5 @@ namespace std
 		return to_wstring_converter.from_bytes(s);
 	}
 }
+
+SYSTEM_INFO getSystemInfo();

@@ -21,12 +21,10 @@
 #include "injectory/exception.hpp"
 #include "injectory/findproc.hpp"
 #include "injectory/injector_helper.hpp"
-#include "injectory/generic_injector.hpp"
 #include "injectory/process.hpp"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-#include <boost/filesystem.hpp>
 
 #include <exception>
 #include <iostream>
@@ -40,8 +38,14 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		po::options_description desc("Usage: injectory [OPTION]...\n"
+		po::options_description desc(
+			"Usage: injectory [OPTION]...\n"
 			"Inject DLL:s into processes\n"
+			"<exe> and <dll> can be relative paths\n"
+			"\n"
+			"Examples:\n"
+			"  injectory -l a.exe -i b.dll --wait-for-exit\n"
+			"  injectory -l a.exe -i b.dll --args \"1 2 3\"\n"
 			"\n"
 			"Options");
 
@@ -54,13 +58,13 @@ int main(int argc, char *argv[])
 			//("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
 			//("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
 			//("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
-			("launch",		po::value<path>()->value_name("<exe>"),		"launches the target in a new process")
+			("launch,l",	po::value<path>()->value_name("<exe>"),		"launches the target in a new process")
 			("args",		po::wvalue<wstring>()->value_name("<string>")->default_value(L"", ""),
 																		"arguments for --launch:ed process\n")
 			
-			("lib",			po::value<vector<path>>()->value_name("<dll>"),
-																		"fully qualified path to libraries\n")
-			
+			("inject,i",	po::value<vector<path>>()->value_name("<dll>"),	"inject libraries")
+			("eject,e",		po::value<vector<path>>()->value_name("<dll>"),	"eject libraries\n")
+
 			("mm",													  	"map the PE file into the remote address space of")
 			("dbgpriv",												  	"set SeDebugPrivilege")
 			("print-pid",												"print the pid of the (started) process")
@@ -69,7 +73,6 @@ int main(int argc, char *argv[])
 			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
-			//("eject",		po::value<vector<int>>(), "ejection mode")
 			//("listmodules",									"dump modules associated with the specified process id")
 		;
 
@@ -98,7 +101,6 @@ int main(int argc, char *argv[])
 				BOOST_THROW_EXCEPTION (ex_set_se_debug_privilege() << e_text("could not set SeDebugPrivilege"));
 		}
 
-		bool eject = vars.count("eject") > 0;
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
 		bool verbose = vars.count("verbose") > 0;
@@ -140,15 +142,21 @@ int main(int argc, char *argv[])
 			}
 
 
-			if (vars.count("lib"))
+			if (vars.count("inject"))
 			{
-				for (const Library& lib : vars["lib"].as<vector<path>>())
+				for (const Library& lib : vars["inject"].as<vector<path>>())
 				{
 					if (mm)
 						proc.mapRemoteModule(lib, verbose);
 					else
 						proc.inject(lib, verbose);
 				}
+			}
+
+			if (vars.count("eject"))
+			{
+				for (const Library& lib : vars["eject"].as<vector<path>>())
+					proc.eject(lib);
 			}
 
 			if (!wii)

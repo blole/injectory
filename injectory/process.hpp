@@ -79,11 +79,20 @@ public:
 
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
-	
+	void eject(const Module& module);
+	void eject(const Library& lib);
+
 	void callTlsInitializers(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
 	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
 
 	bool is64bit() const;
+	MEMORY_BASIC_INFORMATION memBasicInfo(LPCVOID addr)
+	{
+		MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
+		if (!VirtualQueryEx(handle(), addr, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION)))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()));
+		return mem_basic_info;
+	}
 	Module findModule(const Library& lib);
 
 	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
@@ -123,6 +132,7 @@ public:
 	{
 		return id() != 0 || handle() != nullptr;
 	}
+	void listModules();
 };
 
 struct ProcessWithThread
