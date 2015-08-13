@@ -104,13 +104,13 @@ int main(int argc, char *argv[])
 		bool mm = vars.count("mm") > 0;
 		bool verbose = vars.count("verbose") > 0;
 
-		shared_ptr<Process> proc;
+		Process proc;
 
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
-			proc = std::make_shared<Process>(Process::open(pid));
-			proc->suspend();
+			proc = Process::open(pid);
+			proc.suspend();
 		}
 		else if (vars.count("launch"))
 		{
@@ -118,8 +118,7 @@ int main(int argc, char *argv[])
 			path    app  = vars["launch"].as<path>();
 			wstring args = vars["args"].as<wstring>();
 			
-			shared_ptr<ProcessWithThread> procwt = std::make_shared<ProcessWithThread>(Process::launch(app, args, none, none, false, CREATE_SUSPENDED));
-			proc = procwt;
+			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
 		}
 		/*
 		else if (vars.count("procname"))
@@ -132,16 +131,14 @@ int main(int argc, char *argv[])
 
 		if (proc)
 		{
-			if (proc->is64bit() != is64bit)
-				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc->id));
+			if (proc.is64bit() != is64bit)
+				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc.id()));
 
 			if (wii)
 			{
-				proc->resume();
-				proc->waitForInputIdle();
+				proc.resume();
+				proc.waitForInputIdle();
 			}
-			else
-				proc->tryResumeOnDestruction();
 
 
 			if (vars.count("lib"))
@@ -149,22 +146,23 @@ int main(int argc, char *argv[])
 				for (const Library& lib : vars["lib"].as<vector<path>>())
 				{
 					if (mm)
-						MapRemoteModule(proc->id, lib.path);
+						MapRemoteModule(proc, lib.path);
 					else
-						proc->inject(lib, verbose);
+						proc.inject(lib, verbose);
 				}
 			}
 
-			if (vars.count("print-pid"))
-				cout << proc->id << endl;
+			if (!wii)
+				proc.resume();
 
-			proc->resume();
+			if (vars.count("print-pid"))
+				cout << proc.id() << endl;
 
 			if (vars.count("wait-for-exit"))
-				proc->wait();
+				proc.wait();
 
 			if (vars.count("kill-on-exit"))
-				proc->kill();
+				proc.kill();
 		}
 	}
 	catch (const boost::exception& e)

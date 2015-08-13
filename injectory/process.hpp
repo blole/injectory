@@ -6,20 +6,19 @@
 #include <winnt.h>
 #include <boost/optional.hpp>
 
-class ProcessWithThread;
+struct ProcessWithThread;
 
 class Process
 {
 private:
-	shared_ptr<void> shared_handle;
+	shared_ptr<void> handle_;
+	pid_t id_;
 	bool resumeOnDestruction;
 
 public:
-	const pid_t id;
-
 	explicit Process(pid_t id = 0, handle_t handle = nullptr)
-		: id(id)
-		, shared_handle(handle, CloseHandle)
+		: id_(id)
+		, handle_(handle, CloseHandle)
 		, resumeOnDestruction(false)
 	{}
 
@@ -40,7 +39,12 @@ public:
 
 	handle_t handle() const
 	{
-		return shared_handle.get();
+		return handle_.get();
+	}
+
+	pid_t id() const
+	{
+		return id_;
 	}
 
 	void waitForInputIdle(DWORD millis = 5000) const
@@ -62,7 +66,7 @@ public:
 	{
 		BOOL ret = TerminateProcess(handle(), exitCode);
 		if (!ret)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id) << e_last_error());
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id()) << e_last_error());
 	}
 
 
@@ -82,7 +86,7 @@ public:
 		DWORD tid;
 		handle_t thandle = CreateRemoteThread(handle(), attr, stackSize, startAddr, parameter, creationFlags, &tid);
 		if (!thandle)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process") << e_pid(id));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process") << e_pid(id()));
 		else
 			return Thread(tid, thandle);
 	}
@@ -107,16 +111,21 @@ public:
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
 		STARTUPINFOW* startupInfo = { 0 });
+
+public:
+	operator bool() const
+	{
+		return id() != 0 || handle() != nullptr;
+	}
 };
 
-class ProcessWithThread : public Process
+struct ProcessWithThread
 {
-public:
+	Process process;
 	Thread thread;
-public:
-	using Process::Process;
-	ProcessWithThread(pid_t id, handle_t handle, Thread thread)
-		: Process(id, handle)
+
+	ProcessWithThread(const Process& process, const Thread& thread)
+		: process(process)
 		, thread(thread)
 	{}
 };

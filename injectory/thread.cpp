@@ -20,7 +20,7 @@ void Thread::hideFromDebugger() const
 
 	LONG ntStatus = ntSetInformationThread(handle(), ThreadHideFromDebugger, 0, 0);
 	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_hide() << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id));
+		BOOST_THROW_EXCEPTION(ex_hide() << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id()));
 }
 
 void Thread::setPriority(int priority)

@@ -8,19 +8,23 @@ class Process;
 class Thread
 {
 private:
-	shared_ptr<void> shared_handle;
-public:
-	const tid_t id;
+	shared_ptr<void> handle_;
+	tid_t id_;
 
 public:
 	Thread(tid_t id = 0, handle_t handle = nullptr)
-		: id(id)
-		, shared_handle(handle, CloseHandle)
+		: id_(id)
+		, handle_(handle, CloseHandle)
 	{}
 
 	handle_t handle() const
 	{
-		return shared_handle.get();
+		return handle_.get();
+	}
+	
+	tid_t id() const
+	{
+		return id_;
 	}
 
 	void suspend(bool _suspend = true) const

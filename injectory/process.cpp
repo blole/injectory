@@ -31,7 +31,7 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles, creationFlags, nullptr, nullptr, &si, &pi))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
 	else
-		return ProcessWithThread(pi.dwProcessId, pi.hProcess, Thread(pi.dwThreadId, pi.hThread));
+		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
 }
 
 void Process::suspend(bool _suspend) const
@@ -46,7 +46,7 @@ void Process::suspend(bool _suspend) const
 void Process::inject(const Library& lib, const bool& verbose)
 {
 	if (ModuleInjectedW(handle(), lib.ntFilename().c_str()) != 0)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("module already in process") << e_module(lib.path) << e_pid(id()));
 
 	// Calculate the number of bytes needed for the DLL's pathname
 	SIZE_T  LibPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
@@ -105,7 +105,7 @@ void Process::inject(const Library& lib, const bool& verbose)
 				L"  CheckSum:       0x%08x\n"
 				L"  ExitCodeThread: 0x%08x\n",
 				lib.ntFilename().c_str(),
-				id,
+				id(),
 				lpInjectedModule,
 				(LPVOID)((DWORD_PTR)lpInjectedModule + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage / 1024.0,
@@ -136,5 +136,5 @@ bool Process::is64bit() const
 	else if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
 		return false;
 	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id()));
 }
