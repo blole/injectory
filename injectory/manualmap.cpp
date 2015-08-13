@@ -16,7 +16,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/process.hpp"
-#include "injectory/dllmain_remotecall.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/module.hpp"
 #include "injectory/memoryarea.hpp"
@@ -252,40 +251,33 @@ FixRelocations(
 	return TRUE;
 }
 
-BOOL
-CallTlsInitializers(
+void Process::callTlsInitializers(
 	PBYTE imageBase,
 	PIMAGE_NT_HEADERS pNtHeader,
-	HANDLE hProcess,
 	HMODULE hModule,
 	DWORD fdwReason,
-	PIMAGE_TLS_DIRECTORY pImgTlsDir
-	)
+	PIMAGE_TLS_DIRECTORY pImgTlsDir)
 {
 	DWORD_PTR pCallbacks = (DWORD_PTR)pImgTlsDir->AddressOfCallBacks;
 
-	if(pCallbacks)
+	if (pCallbacks)
 	{
-		while(TRUE)
+		while (true)
 		{
 			SIZE_T NumBytesRead = 0;
 			LPVOID callback = 0;
 
-			if(!ReadProcessMemory(hProcess, (PVOID)pCallbacks, &callback, sizeof(LPVOID), &NumBytesRead) ||
-				NumBytesRead != sizeof(LPVOID))
-			{
-				PRINT_ERROR_MSGA("Could not read memory in remote process.");
-				return FALSE;
-			}
+			if (!ReadProcessMemory(handle(), (PVOID)pCallbacks, &callback, sizeof(LPVOID), &NumBytesRead) ||
+					NumBytesRead != sizeof(LPVOID))
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("Could not read memory in remote process."));
 
-			if(!callback) break;
+			if (!callback)
+				break;
 
-			RemoteDllMainCall(hProcess, callback, hModule, fdwReason, 0);
-			//printf("callback: %p\n", callback);
+			remoteDllMainCall(callback, hModule, fdwReason, nullptr);
 			pCallbacks += sizeof(DWORD_PTR);
 		}
 	}
-	return TRUE;
 }
 
 void Process::mapRemoteModule(const Library& lib, const bool& verbose)
@@ -389,17 +381,12 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			nt_header,
 			(PBYTE)dllBin.get());
 		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
-		{
-			if(!CallTlsInitializers(dllBin.get(), nt_header, handle(), (HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir))
-				BOOST_THROW_EXCEPTION(ex_map_remote() << e_text("@Call TLS initializers."));
-		}
+			callTlsInitializers(dllBin.get(), nt_header, (HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
 
 		// call entry point
-		if(!RemoteDllMainCall(
-				handle(),
-				(LPVOID)( (DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
-				(HMODULE)moduleBase.address(), 1, 0))
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("@Call DllMain."));
+		remoteDllMainCall(
+			(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
+			(HMODULE)moduleBase.address(), 1, nullptr);
 
 		if (verbose)
 		{

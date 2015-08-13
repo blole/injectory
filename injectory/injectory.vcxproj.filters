@@ -46,9 +46,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dllmain_remotecall.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="findproc.hpp">
       <Filter>headers</Filter>
     </ClInclude>

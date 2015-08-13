@@ -134,7 +134,6 @@
     <ClCompile Include="thread.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dllmain_remotecall.hpp" />
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="findproc.hpp" />
     <ClInclude Include="generic_injector.hpp" />

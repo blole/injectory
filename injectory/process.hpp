@@ -79,6 +79,8 @@ public:
 
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
+	
+	void callTlsInitializers(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
 	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
 
 	bool is64bit() const;
@@ -95,6 +97,7 @@ public:
 			return Thread(tid, thandle);
 	}
 
+	void remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
 
 public:
 	static Process open(const pid_t& pid, bool inheritHandle = false, DWORD desiredAccess =
