@@ -5,7 +5,7 @@
 class MemoryArea
 {
 private:
-	Process process; //to keep from closing the process handle
+	Process process; //keeps from closing the process handle, among other things
 	shared_ptr<void> address_;
 	SIZE_T size;
 

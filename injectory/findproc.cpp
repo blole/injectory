@@ -18,6 +18,7 @@
 #include "injectory/findproc.hpp"
 #include "injectory/process.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/module.hpp"
 
 
 #define PRINT_TARGET_PROC_ERROR(pid) printf("error: this and target process bit mismatch (x64 vs. x86) (%d).\n", pid)
@@ -60,9 +61,9 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 	else
 	{
 		if (injdata.module_address)
-			proc.eject(Module((HMODULE)injdata.module_address));
+			proc.findModule((HMODULE)injdata.module_address).eject();
 		else
-			proc.eject(injdata.libpath);
+			proc.findModule(injdata.libpath).eject();
 	}
 
 	return TRUE;
@@ -129,19 +130,20 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 
 				bFound = TRUE;
 
+				Process proc = Process::open(pid);
 				if(inject)
 				{
 					if(mm)
-						Process::open(pid).mapRemoteModule(lpLibPath);
+						proc.mapRemoteModule(lpLibPath);
 					else
-						Process::open(pid).inject(lpLibPath);
+						proc.inject(lpLibPath);
 				}
 				else
 				{
 					if (lpModule)
-						Process::open(pid).eject(Module((HMODULE)lpModule));
+						proc.findModule((HMODULE)lpModule).eject();
 					else
-						Process::open(pid).eject(lpLibPath);
+						proc.findModule(lpLibPath).eject();
 				}
 			}
 		}

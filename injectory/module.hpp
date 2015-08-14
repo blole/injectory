@@ -1,25 +1,32 @@
 #pragma once
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/process.hpp"
 #include <Windows.h>
-
-class Process;
 
 class Module
 {
+	friend Module Process::findModule(HMODULE);
 private:
+	Process process;
 	HMODULE handle_;
 
-public:
-	Module(HMODULE module = nullptr)
+private:
+	Module(HMODULE module, const Process& process)
 		: handle_(module)
+		, process(process)
+	{}
+
+public:
+	Module()
+		: Module(nullptr, Process())
 	{}
 
 	Module(const wstring& moduleName)
-		: handle_(GetModuleHandleW(moduleName.c_str()))
+		: Module(GetModuleHandleW(moduleName.c_str()), Process::current)
 	{
 		if (!handle_)
-			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to '" + std::to_string(moduleName) + "'"));
+			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to module '" + std::to_string(moduleName) + "'"));
 	}
 
 	Module(const string& moduleName)
@@ -47,7 +54,8 @@ public:
 		return std::function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
 	}
 
-	wstring mappedFilename(const Process& process, bool throwOnFail = true);
+	wstring ntFilename(bool throwOnFail = true);
+	void eject();
 public:
 	static const Module kernel32;
 	static const Module ntdll;

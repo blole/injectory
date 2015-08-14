@@ -112,7 +112,7 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get the NT namespace path"));
 
 			// Module already in process?
-			Module remoteModule = findModule(moduleNtPath);
+			Module remoteModule = findModule(moduleNtPath, false);
 			if (!remoteModule)
 				remoteModule = inject(modulePath);
 

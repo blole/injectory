@@ -238,8 +238,7 @@ void Process::listModules()
 		if (ab == mem_basic_info.AllocationBase)
 			continue;
 
-		Module module((HMODULE)mem_basic_info.AllocationBase);
-		wstring ntMappedFileName = module.mappedFilename(*this, false);
+		wstring ntMappedFileName = findModule((HMODULE)mem_basic_info.AllocationBase).ntFilename(false);
 
 		if (!ntMappedFileName.empty())
 		{

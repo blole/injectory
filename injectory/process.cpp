@@ -1,10 +1,13 @@
 #include "injectory/process.hpp"
-#include "injectory/injector_helper.hpp"
 #include "injectory/memoryarea.hpp"
+#include <boost/algorithm/string.hpp>
+#include "injectory/module.hpp"
 #include <iostream>
 #include <process.h>
 
 using namespace std;
+
+Process Process::current(GetCurrentProcessId(), GetCurrentProcess());
 
 Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 {
@@ -44,7 +47,7 @@ void Process::suspend(bool _suspend) const
 
 Module Process::inject(const Library& lib, const bool& verbose)
 {
-	if (findModule(lib))
+	if (findModule(lib, false))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib) << e_pid(id()));
 
 	// Calculate the number of bytes needed for the DLL's pathname
@@ -58,7 +61,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 
-	Module injectedModule = findModule(lib);
+	Module injectedModule = findModule(lib, false);
 	if (injectedModule)
 	{
 		IMAGE_NT_HEADERS nt_header = { 0 };
@@ -94,7 +97,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 		return injectedModule;
 	}
 	else
-		return Module(); //injected successfully, but module access denied
+		return Module(); //injected successfully, but module access denied TODO: really? does this happen?
 }
 
 DWORD Process::runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter)
@@ -107,21 +110,6 @@ DWORD Process::runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID par
 	if (!exitCode)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to function in remote process failed"));
 	return exitCode;
-}
-
-void Process::eject(const Module& module)
-{
-	LPTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("FreeLibrary");
-	runInHiddenThread(freeLibrary, module.handle());
-}
-
-void Process::eject(const Library& lib)
-{
-	Module module = findModule(lib);
-	if (module)
-		eject(module);
-	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("error getting handle to module for ejecting") << e_library(lib));
 }
 
 bool Process::is64bit() const
@@ -146,7 +134,7 @@ bool Process::is64bit() const
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id()));
 }
 
-Module Process::findModule(const Library& lib)
+Module Process::findModule(const Library& lib, bool throwOnFail)
 {
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 	SYSTEM_INFO sys_info = getSystemInfo();
@@ -159,14 +147,19 @@ Module Process::findModule(const Library& lib)
 			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
 				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
 		{
-			Module module((HMODULE)mem_basic_info.AllocationBase);
-			wstring mappedFileName = module.mappedFilename(*this);
-
-			LPCWSTR lpLibPathNt = lib.ntFilename().c_str();
-			if (wcsncmp(mappedFileName.c_str(), lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
-				return Module((HMODULE)mem_basic_info.AllocationBase);
+			Module module = findModule((HMODULE)mem_basic_info.AllocationBase);
+			if (boost::iequals(module.ntFilename(*this), lib.ntFilename()))
+				return module;
 		}
 	}
 	
-	return Module(); //access denied
+	if (throwOnFail)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_pid(id()) << e_library(lib));
+	else
+		return Module(); // access denied or not found
+}
+
+Module Process::findModule(HMODULE hmodule)
+{
+	return Module(hmodule, *this);
 }

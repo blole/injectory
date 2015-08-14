@@ -3,11 +3,11 @@
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
 #include "injectory/library.hpp"
-#include "injectory/module.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
 
 struct ProcessWithThread;
+class Module;
 
 class Process
 {
@@ -15,7 +15,6 @@ private:
 	shared_ptr<void> handle_;
 	pid_t id_;
 	bool resumeOnDestruction;
-
 public:
 	explicit Process(pid_t id = 0, handle_t handle = nullptr)
 		: id_(id)
@@ -65,8 +64,7 @@ public:
 
 	void kill(UINT exitCode = 1)
 	{
-		BOOL ret = TerminateProcess(handle(), exitCode);
-		if (!ret)
+		if (!TerminateProcess(handle(), exitCode))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id()) << e_last_error());
 	}
 
@@ -79,8 +77,6 @@ public:
 
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
-	void eject(const Module& module);
-	void eject(const Library& lib);
 
 	void callTlsInitializers(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
 	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
@@ -93,7 +89,9 @@ public:
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()));
 		return mem_basic_info;
 	}
-	Module findModule(const Library& lib);
+	Module findModule(const Library& lib, bool throwOnFail = true);
+	Module findModule(HMODULE hmodule);
+	void listModules();
 
 	DWORD runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter);
 	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
@@ -133,7 +131,8 @@ public:
 	{
 		return id() != 0 || handle() != nullptr;
 	}
-	void listModules();
+
+	static Process current;
 };
 
 struct ProcessWithThread

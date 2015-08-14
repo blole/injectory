@@ -3,6 +3,7 @@
 #include "injectory/findproc.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/process.hpp"
+#include "injectory/module.hpp"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -137,7 +138,7 @@ int main(int argc, char *argv[])
 			if (vars.count("eject"))
 			{
 				for (const Library& lib : vars["eject"].as<vector<path>>())
-					proc.eject(lib);
+					proc.findModule(lib).eject();
 			}
 
 			if (!wii)
@@ -156,6 +157,7 @@ int main(int argc, char *argv[])
 	catch (const boost::exception& e)
 	{
 		cerr << boost::diagnostic_information(e);
+		Sleep(1000);
 		throw;
 	}
 	catch (const exception& e)
