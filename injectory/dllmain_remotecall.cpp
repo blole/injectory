@@ -42,16 +42,12 @@ void Process::remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_
 	struct DLLMAINCALL dllMainCall = { (DLLMAIN)lpModuleEntry, hModule, ul_reason_for_call, lpReserved };
 	SIZE_T DllMainWrapperSize = (SIZE_T)DllMainWrapper_end - (SIZE_T)DllMainWrapper; 
 
-	MemoryArea param          = MemoryArea::alloc(*this, sizeof(struct DLLMAINCALL), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	MemoryArea dllCallWrapper = MemoryArea::alloc(*this, (SIZE_T)((DWORD_PTR)DllMainWrapper_end - (DWORD_PTR)DllMainWrapper), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	MemoryArea param          = MemoryArea::alloc(*this, sizeof(struct DLLMAINCALL));
+	MemoryArea dllCallWrapper = MemoryArea::alloc(*this, (SIZE_T)((DWORD_PTR)DllMainWrapper_end - (DWORD_PTR)DllMainWrapper));
 
 	param.write((LPCVOID)&dllMainCall, sizeof(struct DLLMAINCALL));
 	dllCallWrapper.write((LPCVOID)DllMainWrapper, DllMainWrapperSize);
 	dllCallWrapper.flushInstructionCache(DllMainWrapperSize);
 
-	Thread thread = createRemoteThread((LPTHREAD_START_ROUTINE)dllCallWrapper.address(), param.address(), CREATE_SUSPENDED);
-	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
-	thread.hideFromDebugger();
-	thread.resume();
-	thread.waitForTermination(5000);
+	runInHiddenThread((LPTHREAD_START_ROUTINE)dllCallWrapper.address(), param.address());
 }

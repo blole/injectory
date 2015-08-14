@@ -21,7 +21,11 @@ private:
 	}
 
 public:
-	static MemoryArea alloc(const Process& proc, SIZE_T size, DWORD allocationType, DWORD protect, bool freeOnDestruction = true, LPVOID address = nullptr)
+	static MemoryArea alloc(const Process& proc, SIZE_T size,
+		bool freeOnDestruction = true,
+		DWORD allocationType = MEM_COMMIT | MEM_RESERVE,
+		DWORD protect = PAGE_EXECUTE_READWRITE,
+		LPVOID address = nullptr)
 	{
 		LPVOID area = VirtualAllocEx(proc.handle(), address, size, allocationType, protect);
 

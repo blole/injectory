@@ -51,16 +51,12 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	SIZE_T  libPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
 
 	// Allocate space in the remote process for the pathname
-	MemoryArea libFileRemote = MemoryArea::alloc(*this, libPathLen, MEM_COMMIT, PAGE_READWRITE);
+	MemoryArea libFileRemote = MemoryArea::alloc(*this, libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
 	libFileRemote.flushInstructionCache(libPathLen);
 
-	LPTHREAD_START_ROUTINE loadLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
-	Thread loadLibraryThread = createRemoteThread(loadLibrary, libFileRemote.address(), CREATE_SUSPENDED);
-	loadLibraryThread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
-	loadLibraryThread.hideFromDebugger();
-	loadLibraryThread.resume();
-	DWORD exitCode = loadLibraryThread.waitForTermination();
+	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
+	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 
 	Module injectedModule = findModule(lib);
 	if (injectedModule)
@@ -97,28 +93,26 @@ Module Process::inject(const Library& lib, const bool& verbose)
 		}
 		return injectedModule;
 	}
-	else if (exitCode == 0)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown error (LoadLibraryW)"));
 	else
 		return Module(); //injected successfully, but module access denied
 }
 
-void Process::eject(const Module& module)
+DWORD Process::runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter)
 {
-	LPTHREAD_START_ROUTINE lpFreeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("FreeLibrary");
-
-	suspend();
-	Process proc = *this; //to resume
-	proc.tryResumeOnDestruction();
-
-	Thread thread = createRemoteThread(lpFreeLibrary, module.handle(), CREATE_SUSPENDED);
+	Thread thread = createRemoteThread(startAddress, parameter, CREATE_SUSPENDED);
 	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);
 	thread.hideFromDebugger();
 	thread.resume();
 	DWORD exitCode = thread.waitForTermination();
+	if (!exitCode)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to function in remote process failed"));
+	return exitCode;
+}
 
-	if (!exitCode) // - invalid PE header?
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("call to FreeLibrary in remote process failed"));
+void Process::eject(const Module& module)
+{
+	LPTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("FreeLibrary");
+	runInHiddenThread(freeLibrary, module.handle());
 }
 
 void Process::eject(const Library& lib)

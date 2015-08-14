@@ -95,6 +95,7 @@ public:
 	}
 	Module findModule(const Library& lib);
 
+	DWORD runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter);
 	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
 		LPSECURITY_ATTRIBUTES attr = nullptr, SIZE_T stackSize = 0)
 	{
