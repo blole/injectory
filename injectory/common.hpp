@@ -1,23 +1,5 @@
-////////////////////////////////////////////////////////////////////////////////////////////
-// loader: command-line interface dll injector
-// Copyright (C) 2009-2011 wadim <wdmegrv@gmail.com>
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include <Windows.h>
-#include <stdio.h>
 
 #include <boost/filesystem/path.hpp>
 using boost::filesystem::path;
@@ -47,19 +29,11 @@ using std::vector;
 void PrintErrorMsgA(char *format, ...);
 void PrintErrorMsgW(wchar_t *format, ...);
 
-wchar_t *__stdcall char_to_wchar_t(const char *src);
-
-char *alloc_stra(char *in_str);
-
-int parse_int(const char *str);
-
-///a process id
+// a process id
 typedef DWORD pid_t;
-
-///a thread id
+// a thread id
 typedef DWORD tid_t;
-
-///a handle
+// a handle
 typedef HANDLE handle_t;
 
 namespace std

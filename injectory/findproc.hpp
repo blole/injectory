@@ -16,13 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include <Windows.h>
-
 #undef UNICODE
-
-#include <TlHelp32.h>
-
 #include "injectory/common.hpp"
+#include <TlHelp32.h>
 
 struct INJ_DATA
 {
