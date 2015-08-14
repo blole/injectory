@@ -148,7 +148,6 @@ bool Process::is64bit() const
 
 Module Process::findModule(const Library& lib)
 {
-	WCHAR NtMappedFileName[MAX_PATH + 1] = { 0 };
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 	SYSTEM_INFO sys_info = getSystemInfo();
 
@@ -160,11 +159,11 @@ Module Process::findModule(const Library& lib)
 			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
 				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
 		{
-			if (GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase, NtMappedFileName, MAX_PATH) == 0)
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("GetMappedFileNameW failed") << e_pid(id()) << e_library(lib));
+			Module module((HMODULE)mem_basic_info.AllocationBase);
+			wstring mappedFileName = module.mappedFilename(*this);
 
 			LPCWSTR lpLibPathNt = lib.ntFilename().c_str();
-			if (wcsncmp(NtMappedFileName, lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
+			if (wcsncmp(mappedFileName.c_str(), lpLibPathNt, wcslen(lpLibPathNt) + 1) == 0)
 				return Module((HMODULE)mem_basic_info.AllocationBase);
 		}
 	}

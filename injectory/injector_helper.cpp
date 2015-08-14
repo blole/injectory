@@ -226,7 +226,6 @@ GetFileNameNtW(
 
 void Process::listModules()
 {
-	WCHAR ntMappedFileName[MAX_PATH + 1] = {0};
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 	SYSTEM_INFO sys_info = getSystemInfo();
 
@@ -239,8 +238,10 @@ void Process::listModules()
 		if (ab == mem_basic_info.AllocationBase)
 			continue;
 
-		if(GetMappedFileNameW(handle(), (HMODULE)mem_basic_info.AllocationBase,
-			ntMappedFileName, MAX_PATH))
+		Module module((HMODULE)mem_basic_info.AllocationBase);
+		wstring ntMappedFileName = module.mappedFilename(*this, false);
+
+		if (!ntMappedFileName.empty())
 		{
 			IMAGE_NT_HEADERS nt_header = {0};
 			IMAGE_DOS_HEADER dos_header = {0};
@@ -269,7 +270,7 @@ void Process::listModules()
 					wprintf(L"0x%p, %.1f kB, %s\n",
 						mem_basic_info.AllocationBase,
 						nt_header.OptionalHeader.SizeOfImage/1024.0,
-						ntMappedFileName);
+						ntMappedFileName.c_str());
 				}
 			}
 		}

@@ -3,6 +3,8 @@
 #include "injectory/exception.hpp"
 #include <Windows.h>
 
+class Process;
+
 class Module
 {
 private:
@@ -45,10 +47,10 @@ public:
 		return std::function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
 	}
 
+	wstring mappedFilename(const Process& process, bool throwOnFail = true);
 public:
 	static const Module kernel32;
 	static const Module ntdll;
-
 public:
 	operator bool() const
 	{
