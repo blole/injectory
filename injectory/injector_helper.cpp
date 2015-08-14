@@ -16,12 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/injector_helper.hpp"
-#include "injectory/exception.hpp"
-#include "injectory/module.hpp"
 #include "injectory/process.hpp"
-
-#include <boost/shared_ptr.hpp>
-using namespace std;
+#include "injectory/module.hpp"
+#include <Psapi.h>
 
 FARPROC
 GetRemoteProcAddress(

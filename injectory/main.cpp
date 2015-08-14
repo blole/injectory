@@ -8,10 +8,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <exception>
 #include <iostream>
-#include <iterator>
-#include <process.h>
 using namespace std;
 
 #define VERSION "5.0-SNAPSHOT"

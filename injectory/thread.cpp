@@ -1,8 +1,29 @@
 #include "injectory/thread.hpp"
 #include "injectory/module.hpp"
-#include "injectory/injector_helper.hpp"
 
 using namespace std;
+
+enum MY_THREAD_INFORMATION_CLASS
+{
+	ThreadBasicInformation,
+	ThreadTimes,
+	ThreadPriority,
+	ThreadBasePriority,
+	ThreadAffinityMask,
+	ThreadImpersonationToken,
+	ThreadDescriptorTableEntry,
+	ThreadEnableAlignmentFaultFixup,
+	ThreadEventPair,
+	ThreadQuerySetWin32StartAddress,
+	ThreadZeroTlsCell,
+	ThreadPerformanceCount,
+	ThreadAmILastThread,
+	ThreadIdealProcessor,
+	ThreadPriorityBoost,
+	ThreadSetTlsArrayAddress,
+	ThreadIsIoPending,
+	ThreadHideFromDebugger
+};
 
 Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 {

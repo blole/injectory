@@ -2,8 +2,6 @@
 #include "injectory/memoryarea.hpp"
 #include <boost/algorithm/string.hpp>
 #include "injectory/module.hpp"
-#include <iostream>
-#include <process.h>
 
 using namespace std;
 
@@ -50,10 +48,8 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	if (findModule(lib, false))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib) << e_pid(id()));
 
-	// Calculate the number of bytes needed for the DLL's pathname
-	SIZE_T  libPathLen = (wcslen(lib.path.c_str()) + 1) * sizeof(wchar_t);
-
-	// Allocate space in the remote process for the pathname
+	// copy the pathname to the remote process
+	SIZE_T libPathLen = (lib.path.wstring().size() + 1) * sizeof(wchar_t);
 	MemoryArea libFileRemote = MemoryArea::alloc(*this, libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
 	libFileRemote.flushInstructionCache(libPathLen);

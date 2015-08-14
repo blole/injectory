@@ -2,7 +2,6 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
 #include "injectory/process.hpp"
-#include <Windows.h>
 
 class Module
 {

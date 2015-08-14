@@ -1,4 +1,5 @@
 #include "injectory/module.hpp"
+#include <Psapi.h>
 
 const Module Module::kernel32("kernel32");
 const Module Module::ntdll("ntdll");

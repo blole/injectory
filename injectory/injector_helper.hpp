@@ -16,13 +16,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include <stdio.h>
-
-#include <Windows.h>
-#include <Psapi.h>
-
-#pragma comment(lib, "Psapi.lib")
-
 #include "injectory/common.hpp"
 
 FARPROC
@@ -44,30 +37,3 @@ GetFileNameNtW(
 	LPWSTR lpFileNameNt,
 	DWORD nSize
 	);
-
-VOID
-ListModules(
-	DWORD dwProcessId
-	);
-
-enum MY_THREAD_INFORMATION_CLASS
-{
-	ThreadBasicInformation,
-	ThreadTimes,
-	ThreadPriority,
-	ThreadBasePriority,
-	ThreadAffinityMask,
-	ThreadImpersonationToken,
-	ThreadDescriptorTableEntry,
-	ThreadEnableAlignmentFaultFixup,
-	ThreadEventPair,
-	ThreadQuerySetWin32StartAddress,
-	ThreadZeroTlsCell,
-	ThreadPerformanceCount,
-	ThreadAmILastThread,
-	ThreadIdealProcessor,
-	ThreadPriorityBoost,
-	ThreadSetTlsArrayAddress,
-	ThreadIsIoPending,
-	ThreadHideFromDebugger
-};

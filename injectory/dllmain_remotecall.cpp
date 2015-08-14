@@ -17,7 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "injectory/process.hpp"
 #include "injectory/memoryarea.hpp"
-#include <Windows.h>
 
 typedef BOOL(__stdcall *DLLMAIN)(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
 

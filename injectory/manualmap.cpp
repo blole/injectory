@@ -21,7 +21,7 @@
 #include "injectory/memoryarea.hpp"
 
 #include <stdio.h>
-#include <Windows.h>
+#include <Psapi.h>
 
 using namespace std;
 
