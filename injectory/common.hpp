@@ -51,3 +51,4 @@ namespace std
 }
 
 SYSTEM_INFO getSystemInfo();
+SYSTEM_INFO getNativeSystemInfo();

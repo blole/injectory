@@ -126,7 +126,7 @@ void Process::eject(const Library& lib)
 
 bool Process::is64bit() const
 {
-	SYSTEM_INFO systemInfo = MyGetSystemInfo();
+	SYSTEM_INFO systemInfo = getNativeSystemInfo();
 
 	if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64
 	{

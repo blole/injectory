@@ -276,16 +276,3 @@ void Process::listModules()
 	}
 }
 
-SYSTEM_INFO __stdcall MyGetSystemInfo()
-{
-	SYSTEM_INFO systemInfo = {0};
-
-	auto getNativeSystemInfo = Module::kernel32.getProcAddress<void, LPSYSTEM_INFO>("GetNativeSystemInfo");
-	
-	if (getNativeSystemInfo)
-		getNativeSystemInfo(&systemInfo);
-	else
-		GetSystemInfo(&systemInfo);
-
-	return systemInfo;
-}

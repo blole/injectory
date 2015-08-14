@@ -50,8 +50,6 @@ ListModules(
 	DWORD dwProcessId
 	);
 
-SYSTEM_INFO __stdcall MyGetSystemInfo();
-
 enum MY_THREAD_INFORMATION_CLASS
 {
 	ThreadBasicInformation,
