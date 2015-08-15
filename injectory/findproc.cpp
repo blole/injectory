@@ -61,9 +61,9 @@ BOOL CALLBACK EWP_DirectInject(HWND hwnd, LPARAM lParam)
 	else
 	{
 		if (injdata.module_address)
-			proc.findModule((HMODULE)injdata.module_address).eject();
+			proc.getInjected((HMODULE)injdata.module_address).eject();
 		else
-			proc.findModule(injdata.libpath).eject();
+			proc.getInjected(injdata.libpath).eject();
 	}
 
 	return TRUE;
@@ -141,9 +141,9 @@ BOOL InjectEjectToProcessNameA(LPCSTR lpProcName, LPCSTR lpLibPath, LPVOID lpMod
 				else
 				{
 					if (lpModule)
-						proc.findModule((HMODULE)lpModule).eject();
+						proc.getInjected((HMODULE)lpModule).eject();
 					else
-						proc.findModule(lpLibPath).eject();
+						proc.getInjected(lpLibPath).eject();
 				}
 			}
 		}

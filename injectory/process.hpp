@@ -89,8 +89,16 @@ public:
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()));
 		return mem_basic_info;
 	}
-	Module findModule(const Library& lib, bool throwOnFail = true);
-	Module findModule(HMODULE hmodule);
+
+	// returns the injected module or an empty Module
+	Module isInjected(const Library& lib);
+	// returns the injected module or an empty Module
+	Module isInjected(HMODULE hmodule);
+	/// returns the injected module or throws
+	Module getInjected(const Library& lib);
+	// returns the injected module or throws
+	Module getInjected(HMODULE hmodule);
+
 	void listModules();
 
 	DWORD runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter);

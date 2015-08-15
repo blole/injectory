@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 			if (vars.count("eject"))
 			{
 				for (const Library& lib : vars["eject"].as<vector<path>>())
-					proc.findModule(lib).eject();
+					proc.getInjected(lib).eject();
 			}
 
 			if (!wii)

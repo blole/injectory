@@ -45,7 +45,7 @@ void Process::suspend(bool _suspend) const
 
 Module Process::inject(const Library& lib, const bool& verbose)
 {
-	if (findModule(lib, false))
+	if (isInjected(lib))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib) << e_pid(id()));
 
 	// copy the pathname to the remote process
@@ -57,18 +57,17 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 
-	Module injectedModule = findModule(lib, false);
-	if (injectedModule)
+	if (Module module = isInjected(lib))
 	{
 		IMAGE_NT_HEADERS nt_header = { 0 };
 		IMAGE_DOS_HEADER dos_header = { 0 };
 		SIZE_T NumBytesRead = 0;
 
-		if (!ReadProcessMemory(handle(), injectedModule.handle(), &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
+		if (!ReadProcessMemory(handle(), module.handle(), &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_DOS_HEADER))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
 
-		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)injectedModule.handle() + dos_header.e_lfanew);
+		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
 		if (!ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_NT_HEADERS))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
@@ -84,13 +83,13 @@ Module Process::inject(const Library& lib, const bool& verbose)
 				L"  ExitCodeThread: 0x%08x\n",
 				lib.ntFilename().c_str(),
 				id(),
-				injectedModule.handle(),
-				(LPVOID)((DWORD_PTR)injectedModule.handle() + nt_header.OptionalHeader.AddressOfEntryPoint),
+				module.handle(),
+				(LPVOID)((DWORD_PTR)module.handle() + nt_header.OptionalHeader.AddressOfEntryPoint),
 				nt_header.OptionalHeader.SizeOfImage / 1024.0,
 				nt_header.OptionalHeader.CheckSum,
 				exitCode);
 		}
-		return injectedModule;
+		return module;
 	}
 	else
 		return Module(); //injected successfully, but module access denied TODO: really? does this happen?
@@ -130,7 +129,7 @@ bool Process::is64bit() const
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_pid(id()));
 }
 
-Module Process::findModule(const Library& lib, bool throwOnFail)
+Module Process::isInjected(const Library& lib)
 {
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 	SYSTEM_INFO sys_info = getSystemInfo();
@@ -143,19 +142,47 @@ Module Process::findModule(const Library& lib, bool throwOnFail)
 			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
 				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
 		{
-			Module module = findModule((HMODULE)mem_basic_info.AllocationBase);
+			Module module((HMODULE)mem_basic_info.AllocationBase, *this);
 			if (boost::iequals(module.ntFilename(*this), lib.ntFilename()))
 				return module;
 		}
 	}
-	
-	if (throwOnFail)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_pid(id()) << e_library(lib));
-	else
-		return Module(); // access denied or not found
+
+	return Module(); // access denied or not found
 }
 
-Module Process::findModule(HMODULE hmodule)
+Module Process::isInjected(HMODULE hmodule)
 {
-	return Module(hmodule, *this);
+	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
+	SYSTEM_INFO sys_info = getSystemInfo();
+
+	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
+	{
+		mem_basic_info = memBasicInfo((LPCVOID)mem);
+
+		if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
+			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
+				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
+		{
+			if ((HMODULE)mem_basic_info.AllocationBase == hmodule)
+				return Module(hmodule, *this);
+		}
+	}
+
+	return Module(); // access denied or not found
+}
+
+Module Process::getInjected(const Library& lib)
+{
+	if (Module module = isInjected(lib))
+		return module;
+	else
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find injected library") << e_pid(id()) << e_library(lib));
+}
+Module Process::getInjected(HMODULE hmodule)
+{
+	if (Module module = isInjected(hmodule))
+		return module;
+	else
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_pid(id()));
 }

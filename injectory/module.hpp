@@ -5,7 +5,8 @@
 
 class Module
 {
-	friend Module Process::findModule(HMODULE);
+	friend Module Process::isInjected(HMODULE);
+	friend Module Process::isInjected(const Library&);
 private:
 	Process process;
 	HMODULE handle_;
