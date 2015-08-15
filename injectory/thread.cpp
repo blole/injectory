@@ -50,12 +50,12 @@ void Thread::setPriority(int priority)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not set thread priority"));
 }
 
-DWORD Thread::waitForTermination(DWORD millis)
+DWORD Thread::waitForTermination()
 {
+	wait();
 	DWORD exitCode;
-	if (WaitForSingleObject(handle(), millis) == WAIT_FAILED)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("WaitForSingleObject failed"));
 	if (!GetExitCodeThread(handle(), &exitCode))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get thread exit code"));
-	return exitCode;
+	else
+		return exitCode;
 }

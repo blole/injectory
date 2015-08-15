@@ -55,17 +55,23 @@ public:
 
 	DWORD wait(DWORD millis = INFINITE)
 	{
-		DWORD ret = WaitForSingleObject(handle(), millis);
-		if (ret == WAIT_FAILED)
-			BOOST_THROW_EXCEPTION(ex_wait_for_exit());
-		else
-			return ret;
+		return WaitForSingleObject_Throwing(handle(), millis);
+	}
+
+	bool isRunning()
+	{
+		return wait(0) == WAIT_TIMEOUT;
 	}
 
 	void kill(UINT exitCode = 1)
 	{
 		if (!TerminateProcess(handle(), exitCode))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id()) << e_last_error());
+		{
+			e_last_error last_error;
+			if (isRunning())
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id()) << last_error);
+			//otherwise it was already dead
+		}
 	}
 
 

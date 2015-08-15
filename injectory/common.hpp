@@ -52,3 +52,5 @@ namespace std
 
 SYSTEM_INFO getSystemInfo();
 SYSTEM_INFO getNativeSystemInfo();
+
+DWORD WaitForSingleObject_Throwing(HANDLE handle, DWORD millis);

@@ -45,8 +45,13 @@ public:
 	void hideFromDebugger() const;
 
 	void setPriority(int priority);
+
+	DWORD wait(DWORD millis = INFINITE)
+	{
+		return WaitForSingleObject_Throwing(handle(), millis);
+	}
 	// returns the threads exit code
-	DWORD waitForTermination(DWORD millis = INFINITE);
+	DWORD waitForTermination();
 
 public:
 	static Thread open(const tid_t& tid, bool inheritHandle = false, DWORD desiredAccess = THREAD_SET_INFORMATION);
