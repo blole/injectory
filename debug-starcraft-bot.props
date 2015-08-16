@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <DebugSuffix Condition="'$(Configuration)'=='Debug'">d</DebugSuffix>
+    <DebugSuffix Condition="'$(Configuration)'!='Debug'"></DebugSuffix>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LocalDebuggerCommandArguments>--launch starcraft.exe --inject bwapi-data/BWAPI$(DebugSuffix).dll --kill-on-exit --wait-for-exit --print-pid</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>C:\tm\starcraft</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+  </PropertyGroup>
+  <ItemGroup>
+    <BuildMacro Include="LocalDebuggerCommand">
+      <Value>$(LocalDebuggerCommand)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LocalDebuggerCommandArguments">
+      <Value>$(LocalDebuggerCommandArguments)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LocalDebuggerWorkingDirectory">
+      <Value>$(LocalDebuggerWorkingDirectory)</Value>
+    </BuildMacro>
+    <BuildMacro Include="DebuggerFlavor">
+      <Value>$(DebuggerFlavor)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LocalDebuggerDebuggerType">
+      <Value>$(LocalDebuggerDebuggerType)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

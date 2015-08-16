@@ -12,19 +12,18 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <Link>
       <OutputFile>$(BuildDir)/bin/$(TargetFileName)</OutputFile>
       <ProgramDatabaseFile>$(BuildDir)/bin/$(TargetName).pdb</ProgramDatabaseFile>
       <ProfileGuidedDatabase>$(BuildDir)/lib/$(TargetName).pgd</ProfileGuidedDatabase>
       <ImportLibrary>$(BuildDir)/lib/$(TargetName).lib</ImportLibrary>
     </Link>
-    <Lib />
     <Lib>
       <OutputFile>$(BuildDir)/lib/$(TargetFileName)</OutputFile>
     </Lib>
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="BuildDir">
