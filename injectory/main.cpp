@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
 			("dbgpriv",												  	"set SeDebugPrivilege")
 			("print-pid",												"print the pid of the (started) process")
 			("wii",													  	"wait for process input idle before injecting")
+			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
+																		" visual studio by resuming all threads for 2 seconds")
 			("wait-for-exit",											"wait for the target to exit before exiting")
 			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
 			//("Address of library (ejection)")
@@ -140,6 +142,17 @@ int main(int argc, char *argv[])
 
 			if (!wii)
 				proc.resume();
+
+			if (vars.count("vs-debug-workaround"))
+			{
+				//resume threads that may have been left suspended when debugging with visual studio
+				for (int i = 0; i < 20; i++)
+				{
+					proc.wait(100);
+					proc.resumeAllThreads();
+				}
+				cout << "done" << endl;
+			}
 
 			if (vars.count("print-pid"))
 				cout << proc.id() << endl;

@@ -2,6 +2,8 @@
 #include "injectory/memoryarea.hpp"
 #include <boost/algorithm/string.hpp>
 #include "injectory/module.hpp"
+#include <TlHelp32.h>
+#include <iostream>
 
 using namespace std;
 
@@ -41,6 +43,37 @@ void Process::suspend(bool _suspend) const
 	LONG ntStatus = func(handle());
 	if (!NT_SUCCESS(ntStatus))
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
+}
+
+void Process::suspendAllThreads(bool _suspend) const
+{
+	for (Thread& thread : threads(false, THREAD_SUSPEND_RESUME))
+		thread.suspend(_suspend);
+}
+
+vector<Thread> Process::threads(bool inheritHandle, DWORD desiredAccess) const
+{
+	vector<Thread> threads_;
+	HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, id());
+	if (h != INVALID_HANDLE_VALUE)
+	{
+		THREADENTRY32 te;
+		te.dwSize = sizeof(te);
+		if (Thread32First(h, &te))
+		{
+			do
+			{
+				if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID))
+				{
+					if (te.th32OwnerProcessID == id())
+						threads_.push_back(Thread::open(te.th32ThreadID, inheritHandle, desiredAccess));
+				}
+				te.dwSize = sizeof(te);
+			} while (Thread32Next(h, &te));
+		}
+		CloseHandle(h);
+	}
+	return threads_;
 }
 
 Module Process::inject(const Library& lib, const bool& verbose)

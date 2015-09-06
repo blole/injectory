@@ -81,6 +81,14 @@ public:
 		suspend(!_resume);
 	}
 
+	void suspendAllThreads(bool _suspend = true) const;
+	void resumeAllThreads(bool _resume = true) const
+	{
+		suspendAllThreads(!_resume);
+	}
+
+	vector<Thread> threads(bool inheritHandle = false, DWORD desiredAccess = THREAD_SET_INFORMATION) const;
+
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
 
@@ -120,7 +128,6 @@ public:
 	}
 
 	void remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
-
 public:
 	static Process open(const pid_t& pid, bool inheritHandle = false, DWORD desiredAccess =
 			PROCESS_QUERY_INFORMATION	| // Required by Alpha
