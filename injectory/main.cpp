@@ -18,22 +18,18 @@ int main(int argc, char *argv[])
 	try
 	{
 		po::options_description desc(
-			"Usage: injectory [OPTION]...\n"
-			"Inject DLL:s into processes\n"
+			"usage: injectory [OPTION]...\n"
+			"inject DLL:s into processes\n"
 			"<exe> and <dll> can be relative paths\n"
 			"\n"
 			"Examples:\n"
-			"  injectory -l a.exe -i b.dll --wait-for-exit\n"
-			"  injectory -l a.exe -i b.dll --args \"1 2 3\"\n"
+			"  injectory -l a.exe -i b.dll --args \"1 2 3\" --wii\n"
+			"  injectory -p 12345 -i b.dll --mm --wait-for-exit\n"
 			"\n"
 			"Options");
 
 		desc.add_options()
-			("help",													"display help message and exit")
-			("version",													"display version information and exit")
-			("verbose,v",												"\n")
-
-			("pid",			po::value<int>()->value_name("<pid>"),		"injection via process id")
+			("pid,p",		po::value<int>()->value_name("<pid>"),		"injection via process id")
 			//("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
 			//("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
 			//("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
@@ -44,14 +40,18 @@ int main(int argc, char *argv[])
 			("inject,i",	po::value<vector<path>>()->value_name("<dll>"),	"inject libraries")
 			("eject,e",		po::value<vector<path>>()->value_name("<dll>"),	"eject libraries\n")
 
-			("mm",													  	"map the PE file into the remote address space of")
+			("mm",													  	"map the PE file into the target's address space")
 			("dbgpriv",												  	"set SeDebugPrivilege")
 			("print-pid",												"print the pid of the (started) process")
-			("wii",													  	"wait for process input idle before injecting")
 			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
+			("wii",													  	"wait for target input idle before injecting")
 			("wait-for-exit",											"wait for the target to exit before exiting")
-			("kill-on-exit",											"kill the target when exiting") // (also on forced exit)")
+			("kill-on-exit",											"kill the target when exiting\n") // (also on forced exit)")
+
+			("verbose,v",												"")
+			("version",													"display version information and exit")
+			("help",													"display help message and exit")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("listmodules",									"dump modules associated with the specified process id")
@@ -70,9 +70,7 @@ int main(int argc, char *argv[])
 		if (vars.count("version"))
 		{
 			cout << "injectory " << VERSION << endl
-				 << "project home: https://github.com/blole/injector" << endl
-				 << "forked from:  https://code.google.com/p/injector" << endl
-				 << "Copyright (C) 2011 Wadim E. (wdmegrv@gmail.com)" << endl;
+				 << "project home: https://github.com/blole/injectory" << endl;
 			return 0;
 		}
 

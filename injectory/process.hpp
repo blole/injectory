@@ -135,6 +135,7 @@ public:
 			PROCESS_VM_OPERATION		| // For VirtualAllocEx/VirtualFreeEx
 			PROCESS_VM_WRITE			| // For WriteProcessMemory
 			PROCESS_SUSPEND_RESUME		|
+			SYNCHRONIZE					|
 			PROCESS_VM_READ
 		);
 
