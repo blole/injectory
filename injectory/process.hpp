@@ -6,6 +6,7 @@
 #include <winnt.h>
 #include <boost/optional.hpp>
 
+class MemoryArea;
 struct ProcessWithThread;
 class Module;
 
@@ -88,6 +89,12 @@ public:
 	}
 
 	vector<Thread> threads(bool inheritHandle = false, DWORD desiredAccess = THREAD_SET_INFORMATION) const;
+
+	MemoryArea alloc(SIZE_T size,
+		bool freeOnDestruction = true,
+		DWORD allocationType = MEM_COMMIT | MEM_RESERVE,
+		DWORD protect = PAGE_EXECUTE_READWRITE,
+		LPVOID address = nullptr);
 
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);

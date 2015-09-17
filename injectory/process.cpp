@@ -76,6 +76,11 @@ vector<Thread> Process::threads(bool inheritHandle, DWORD desiredAccess) const
 	return threads_;
 }
 
+MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationType, DWORD protect, LPVOID address)
+{
+	return MemoryArea::alloc(*this, size, freeOnDestruction, allocationType, protect, address);
+}
+
 Module Process::inject(const Library& lib, const bool& verbose)
 {
 	if (isInjected(lib))
@@ -83,9 +88,8 @@ Module Process::inject(const Library& lib, const bool& verbose)
 
 	// copy the pathname to the remote process
 	SIZE_T libPathLen = (lib.path.wstring().size() + 1) * sizeof(wchar_t);
-	MemoryArea libFileRemote = MemoryArea::alloc(*this, libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
+	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
-	libFileRemote.flushInstructionCache(libPathLen);
 
 	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());

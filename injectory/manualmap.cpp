@@ -319,7 +319,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("invalid PE header"));
 
 		// Allocate space for the module in the remote process
-		MemoryArea moduleBase = MemoryArea::alloc(*this, nt_header->OptionalHeader.SizeOfImage, false);
+		MemoryArea moduleBase = alloc(nt_header->OptionalHeader.SizeOfImage, false);
 		
 		// fix imports
 		pImgImpDesc = (PIMAGE_IMPORT_DESCRIPTOR)GetPtrFromRVA(

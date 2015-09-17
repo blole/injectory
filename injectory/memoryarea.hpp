@@ -4,13 +4,14 @@
 
 class MemoryArea
 {
+	friend MemoryArea Process::alloc(SIZE_T, bool, DWORD, DWORD, LPVOID);
 private:
 	Process process; //keeps from closing the process handle, among other things
 	shared_ptr<void> address_;
 	SIZE_T size;
 
 private:
-	explicit MemoryArea(Process process, void* address, SIZE_T size, bool freeOnDestruction = true)
+	MemoryArea(Process process, void* address, SIZE_T size, bool freeOnDestruction = true)
 		: process(process)
 		, size(size)
 	{
@@ -20,12 +21,8 @@ private:
 			address_ = shared_ptr<void>(address);
 	}
 
-public:
-	static MemoryArea alloc(const Process& proc, SIZE_T size,
-		bool freeOnDestruction = true,
-		DWORD allocationType = MEM_COMMIT | MEM_RESERVE,
-		DWORD protect = PAGE_EXECUTE_READWRITE,
-		LPVOID address = nullptr)
+	static MemoryArea alloc(const Process& proc, SIZE_T size, bool freeOnDestruction,
+		DWORD allocationType, DWORD protect, LPVOID address)
 	{
 		LPVOID area = VirtualAllocEx(proc.handle(), address, size, allocationType, protect);
 
@@ -47,6 +44,7 @@ public:
 		SIZE_T writtenSize = 0;
 		if (!WriteProcessMemory(process.handle(), address(), from, size, &writtenSize) || writtenSize != size)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
+		flushInstructionCache(size);
 	}
 
 	void flushInstructionCache(SIZE_T size)
