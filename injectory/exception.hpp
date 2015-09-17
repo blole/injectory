@@ -20,6 +20,7 @@ struct ex_suspend_resume_process	: virtual exception_base { };
 struct ex_wait_for_input_idle		: virtual exception_base { };
 struct ex_wait_for_single_object	: virtual exception_base { };
 struct ex_get_module_handle			: virtual exception_base { };
+struct ex_file_not_found			: virtual exception_base { };
 
 typedef boost::error_info<struct tag_text, string> e_text;
 typedef boost::error_info<struct tag_file_path, path> e_file_path;

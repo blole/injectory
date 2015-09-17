@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 using boost::filesystem::path;
 
 #include <locale>

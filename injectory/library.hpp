@@ -9,16 +9,19 @@ public:
 	const path path;
 
 public:
-	Library(const boost::filesystem::path& path)
-		: path(path)
+	Library(const boost::filesystem::path& path_)
+		: path(path_)
+	{
+		if (!boost::filesystem::is_regular_file(path))
+			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(path));
+	}
+
+	Library(const char* path_)
+		: Library(boost::filesystem::path(path_))
 	{}
 
-	Library(const char* path)
-		: path(path)
-	{}
-
-	Library(const wchar_t* path)
-		: path(path)
+	Library(const wchar_t* path_)
+		: Library(boost::filesystem::path(path_))
 	{}
 
 public:
