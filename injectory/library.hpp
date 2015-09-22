@@ -13,7 +13,7 @@ public:
 		: path(path_)
 	{
 		if (!boost::filesystem::is_regular_file(path))
-			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(path));
+			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(*this));
 	}
 
 	Library(const char* path_)
@@ -30,7 +30,7 @@ public:
 		WCHAR ntFilename[MAX_PATH + 1] = { 0 };
 
 		if (!GetFileNameNtW(path.c_str(), ntFilename, MAX_PATH))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_library(path) << e_text("could not get the NT filename"));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_library(*this) << e_text("could not get the NT filename"));
 		else
 			return wstring(ntFilename);
 	}
