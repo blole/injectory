@@ -42,7 +42,8 @@ int main(int argc, char *argv[])
 
 			("mm",													  	"map the PE file into the target's address space")
 			("dbgpriv",												  	"set SeDebugPrivilege")
-			("print-pid",												"print the pid of the (started) process")
+			("print-own-pid",											"print the pid of this process")
+			("print-pid",												"print the pid of the target process")
 			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
 			("wii",													  	"wait for target input idle before injecting")
@@ -73,6 +74,9 @@ int main(int argc, char *argv[])
 				 << "project home: https://github.com/blole/injectory" << endl;
 			return 0;
 		}
+
+		if (vars.count("print-own-pid"))
+			cout << Process::current.id() << endl;
 
 		if (vars.count("dbgpriv"))
 		{
