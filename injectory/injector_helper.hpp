@@ -1,13 +1,6 @@
 #pragma once
 #include "injectory/common.hpp"
 
-FARPROC
-GetRemoteProcAddress(
-	HANDLE hProcess,
-	HMODULE hRemoteModule,
-	LPCSTR lpProcName
-	);
-
 BOOL
 EnablePrivilegeW(
 	LPCWSTR	lpPrivilegeName,

@@ -3,67 +3,6 @@
 #include "injectory/module.hpp"
 #include <Psapi.h>
 
-FARPROC
-GetRemoteProcAddress(
-	HANDLE hProcess,
-	HMODULE hRemoteModule,
-	LPCSTR lpProcName
-	)
-{
-	HMODULE hLocalModule = 0;
-	FARPROC fpLocalFunction = 0;
-	LONG_PTR funcDelta = 0;
-	FARPROC result = 0;
-	WCHAR lpModuleName[MAX_PATH + 1] = {0};
-
-	__try
-	{
-		
-		if(!GetModuleFileNameExW(hProcess, hRemoteModule, lpModuleName, MAX_PATH))
-		{
-			PRINT_ERROR_MSGA("Could not get path to remote module.");
-			__leave;
-		}
-
-		// DONT_RESOLVE_DLL_REFERENCES
-		// If this value is used, and the executable module is a DLL,
-		// the system does not call DllMain for process and thread
-		// initialization and termination. Also, the system does not
-		// load additional executable modules that are referenced by
-		// the specified module.
-		hLocalModule = LoadLibraryExW(lpModuleName, 0, DONT_RESOLVE_DLL_REFERENCES);
-
-		if(!hLocalModule)
-		{
-			PRINT_ERROR_MSGA("Could not load module locally.");
-			__leave;
-		}
-
-		// Find target function in module
-		fpLocalFunction = GetProcAddress(hLocalModule, lpProcName);
-		if(!fpLocalFunction)
-		{
-			PRINT_ERROR_MSGA("Could not find target function.");
-			__leave;
-		}
-
-		// Calculate function delta
-		funcDelta = (DWORD_PTR)(fpLocalFunction) - (DWORD_PTR)(hLocalModule);
-
-		// Calculate function location in remote process
-		result = (FARPROC)( (DWORD_PTR)(hRemoteModule) + funcDelta );
-	}
-	__finally
-	{
-		if(hLocalModule)
-		{
-			FreeLibrary(hLocalModule);
-		}
-	}
-
-	return result;
-}
-
 BOOL
 EnablePrivilegeW(
 	LPCWSTR lpPrivilegeName,

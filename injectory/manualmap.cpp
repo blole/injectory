@@ -103,7 +103,7 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 			{
 				IMAGE_IMPORT_BY_NAME *iibn =
 					(PIMAGE_IMPORT_BY_NAME)GetPtrFromRVA(itd->u1.AddressOfData, pNtHeader, imageBase);
-				itd->u1.Function = (DWORD_PTR)GetRemoteProcAddress(handle(), remoteModule.handle(), (LPCSTR)iibn->Name);
+				itd->u1.Function = (DWORD_PTR)remoteModule.getProcAddress((LPCSTR)iibn->Name);
 
 				//printf("Function: %s\n", (LPCSTR)iibn->Name);
 
