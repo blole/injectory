@@ -2,6 +2,8 @@
 #include "injectory/memoryarea.hpp"
 #include <boost/algorithm/string.hpp>
 #include "injectory/module.hpp"
+#include "injectory/library.hpp"
+#include "injectory/file.hpp"
 #include <TlHelp32.h>
 
 Process Process::current(GetCurrentProcessId(), GetCurrentProcess());
@@ -219,4 +221,16 @@ Module Process::getInjected(HMODULE hmodule)
 		return module;
 	else
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_pid(id()));
+}
+
+Module Process::map(const File& file)
+{
+	shared_ptr<void> fileMap(CreateFileMappingW(file.handle(), nullptr, PAGE_READONLY, 0, 1, nullptr), CloseHandle);
+	if (!fileMap)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateFileMappingW(" + file.path().string() + ") failed"));
+
+	Module module((HMODULE)MapViewOfFile(fileMap.get(), FILE_MAP_READ, 0, 0, 1), Process::current, UnmapViewOfFile);
+	if (!module)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("MapViewOfFile() failed"));
+	return module;
 }

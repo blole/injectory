@@ -70,5 +70,8 @@
     <ClInclude Include="memoryarea.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="file.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -22,8 +22,8 @@ wstring Module::filename() const
 
 wstring Module::mappedFilename(bool throwOnFail) const
 {
-	WCHAR buffer[MAX_PATH + 1] = {0};
-	if (!GetMappedFileNameW(process.handle(), handle(), buffer, MAX_PATH) && throwOnFail)
+	WCHAR buffer[500 + 1] = {0};
+	if (!GetMappedFileNameW(process.handle(), handle(), buffer, 500) && throwOnFail)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("GetMappedFileNameW failed") << e_pid(process.id()));
 	return wstring(buffer);
 }

@@ -7,13 +7,20 @@ class Module
 {
 	friend Module Process::isInjected(HMODULE);
 	friend Module Process::isInjected(const Library&);
+	friend Module Process::map(const File& file);
 private:
+	shared_ptr<HINSTANCE__> handle_;
 	Process process;
-	HMODULE handle_;
 
 private:
-	Module(HMODULE module, const Process& process)
-		: handle_(module)
+	Module(HMODULE handle_, const Process& process)
+		: handle_(handle_)
+		, process(process)
+	{}
+
+	template <class Deleter>
+	Module(HMODULE handle_, const Process& process, Deleter deleter)
+		: handle_(handle_, deleter)
 		, process(process)
 	{}
 
@@ -44,7 +51,7 @@ public:
 public:
 	HMODULE handle() const
 	{
-		return handle_;
+		return handle_.get();
 	}
 
 public:
@@ -60,7 +67,7 @@ public:
 		}
 		else
 		{
-			FARPROC procAddress = GetProcAddress(handle_, procName.c_str());
+			FARPROC procAddress = GetProcAddress(handle(), procName.c_str());
 			if (!procAddress)
 				BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get the address of '" + procName + "'"));
 			return procAddress;

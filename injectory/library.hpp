@@ -1,7 +1,9 @@
 #pragma once
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
-#include "injector_helper.hpp"
+#include "injectory/process.hpp"
+#include "injectory/module.hpp"
+#include "injectory/file.hpp"
 
 class Library
 {
@@ -25,13 +27,13 @@ public:
 	{}
 
 public:
+	File file() const
+	{
+		return File::create(path);
+	}
+
 	wstring ntFilename() const
 	{
-		WCHAR ntFilename[MAX_PATH + 1] = { 0 };
-
-		if (!GetFileNameNtW(path.c_str(), ntFilename, MAX_PATH))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_library(*this) << e_text("could not get the NT filename"));
-		else
-			return wstring(ntFilename);
+		return Process::current.map(file()).mappedFilename();
 	}
 };

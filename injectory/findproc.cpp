@@ -1,6 +1,7 @@
 #include "injectory/findproc.hpp"
 #include "injectory/process.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/library.hpp"
 #include "injectory/module.hpp"
 
 

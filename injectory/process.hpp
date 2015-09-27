@@ -2,10 +2,11 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
-#include "injectory/library.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
 
+class Library;
+class File;
 class MemoryArea;
 struct ProcessWithThread;
 class Module;
@@ -121,6 +122,8 @@ public:
 	Module getInjected(HMODULE hmodule);
 
 	void listModules();
+
+	Module map(const File& file);
 
 	DWORD runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter);
 	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,

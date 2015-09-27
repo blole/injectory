@@ -1,6 +1,8 @@
 #include "injectory/process.hpp"
 #include "injectory/injector_helper.hpp"
 #include "injectory/module.hpp"
+#include "injectory/library.hpp"
+#include "injectory/file.hpp"
 #include "injectory/memoryarea.hpp"
 
 #include <stdio.h>
@@ -53,7 +55,6 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 {
 	LPSTR lpModuleName = 0;
 	WCHAR modulePath[MAX_PATH + 1] = {0};
-	WCHAR moduleNtPath[500 + 1] = {0};
 	WCHAR targetProcPath[MAX_PATH + 1] = {0};
 	WCHAR *pch = 0;
 
@@ -88,12 +89,8 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 			if(!GetModuleFileNameW((HMODULE)hLocalModule.get(), modulePath, MAX_PATH))
 				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get path to module") << e_file_path(lpModuleName));
 
-			// get nt path
-			if(!GetFileNameNtW(modulePath, moduleNtPath, 500))
-				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get the NT namespace path"));
-
 			// Module already in process?
-			Module remoteModule = isInjected(moduleNtPath);
+			Module remoteModule = isInjected(Library(modulePath));
 			if (!remoteModule)
 				remoteModule = inject(modulePath);
 

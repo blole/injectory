@@ -138,6 +138,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception.hpp" />
+    <ClInclude Include="file.hpp" />
     <ClInclude Include="findproc.hpp" />
     <ClInclude Include="injector_helper.hpp" />
     <ClInclude Include="library.hpp" />
