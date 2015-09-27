@@ -85,8 +85,8 @@ public:
 	void eject();
 public:
 	static const Module& exe();
-	static const Module kernel32;
-	static const Module ntdll;
+	static const Module& kernel32();
+	static const Module& ntdll();
 public:
 	operator bool() const
 	{

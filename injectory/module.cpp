@@ -3,11 +3,19 @@
 
 const Module& Module::exe()
 {
-	static Module exe_(GetModuleHandleW(nullptr), Process::current);
-	return exe_;
+	static Module m(GetModuleHandleW(nullptr), Process::current);
+	return m;
 }
-const Module Module::kernel32("kernel32");
-const Module Module::ntdll("ntdll");
+const Module& Module::kernel32()
+{
+	static Module m("kernel32");
+	return m;
+}
+const Module& Module::ntdll()
+{
+	static Module m("ntdll");
+	return m;
+}
 
 wstring Module::filename() const
 {
@@ -30,6 +38,6 @@ wstring Module::mappedFilename(bool throwOnFail) const
 
 void Module::eject()
 {
-	LPTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("FreeLibrary");
+	LPTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("FreeLibrary");
 	process.runInHiddenThread(freeLibrary, handle());
 }

@@ -36,7 +36,7 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 
 void Thread::hideFromDebugger() const
 {
-	auto ntSetInformationThread = Module::ntdll.getProcAddress<LONG, HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG>("NtSetInformationThread");
+	auto ntSetInformationThread = Module::ntdll().getProcAddress<LONG, HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG>("NtSetInformationThread");
 	//LONG(HANDLE, MY_THREAD_INFORMATION_CLASS, ThreadInformation, ThreadInformationLength)
 
 	LONG ntStatus = ntSetInformationThread(handle(), ThreadHideFromDebugger, nullptr, 0);

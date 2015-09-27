@@ -50,7 +50,7 @@ SYSTEM_INFO getNativeSystemInfo()
 {
 	SYSTEM_INFO systemInfo = { 0 };
 
-	auto getNativeSystemInfo_ = Module::kernel32.getProcAddress<void, LPSYSTEM_INFO>("GetNativeSystemInfo");
+	auto getNativeSystemInfo_ = Module::kernel32().getProcAddress<void, LPSYSTEM_INFO>("GetNativeSystemInfo");
 
 	if (getNativeSystemInfo_)
 		getNativeSystemInfo_(&systemInfo);

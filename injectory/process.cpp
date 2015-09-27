@@ -38,7 +38,7 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 void Process::suspend(bool _suspend) const
 {
 	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
-	auto func = Module::ntdll.getProcAddress<LONG, HANDLE>(funcName);
+	auto func = Module::ntdll().getProcAddress<LONG, HANDLE>(funcName);
 	LONG ntStatus = func(handle());
 	if (!NT_SUCCESS(ntStatus))
 		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
@@ -90,7 +90,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
 
-	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32.getProcAddress("LoadLibraryW");
+	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 
 	if (Module module = isInjected(lib))
@@ -153,7 +153,7 @@ bool Process::is64bit() const
 
 		BOOL isWow64 = false;
 
-		auto isWow64Process = Module::kernel32.getProcAddress<BOOL, HANDLE, PBOOL>("IsWow64Process");
+		auto isWow64Process = Module::kernel32().getProcAddress<BOOL, HANDLE, PBOOL>("IsWow64Process");
 		if (!isWow64Process(handle(), &isWow64))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("IsWow64Process failed"));
 
