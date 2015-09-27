@@ -12,6 +12,12 @@ using std::string;
 using std::wstring;
 #include <vector>
 using std::vector;
+#include <iostream>
+using std::cout;
+using std::cerr;
+using std::cin;
+using std::endl;
+using std::exception;
 
 
 #if defined(_WIN64)

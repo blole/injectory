@@ -8,9 +8,6 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <iostream>
-using namespace std;
-
 #define VERSION "5.0-SNAPSHOT"
 
 int main(int argc, char *argv[])

@@ -39,7 +39,7 @@ class e_last_error : public boost::error_info<struct tag_last_error, string>
 {
 public:
 	e_last_error(DWORD hresult = GetLastError())
-		: error_info(getLastError(hresult))
+		: error_info(getLastErrorString(hresult))
 	{}
-	static string getLastError(DWORD hresult);
+	static string getLastErrorString(DWORD hresult);
 };

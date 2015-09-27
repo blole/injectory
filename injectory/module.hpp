@@ -54,9 +54,11 @@ public:
 		return std::function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
 	}
 
-	wstring ntFilename(bool throwOnFail = true);
+	wstring filename() const;
+	wstring mappedFilename(bool throwOnFail = true) const;
 	void eject();
 public:
+	static const Module& exe();
 	static const Module kernel32;
 	static const Module ntdll;
 public:

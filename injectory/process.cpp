@@ -3,9 +3,6 @@
 #include <boost/algorithm/string.hpp>
 #include "injectory/module.hpp"
 #include <TlHelp32.h>
-#include <iostream>
-
-using namespace std;
 
 Process Process::current(GetCurrentProcessId(), GetCurrentProcess());
 
@@ -180,7 +177,7 @@ Module Process::isInjected(const Library& lib)
 				PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
 		{
 			Module module((HMODULE)mem_basic_info.AllocationBase, *this);
-			if (boost::iequals(module.ntFilename(*this), lib.ntFilename()))
+			if (boost::iequals(module.mappedFilename(*this), lib.ntFilename()))
 				return module;
 		}
 	}

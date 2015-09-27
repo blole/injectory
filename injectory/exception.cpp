@@ -7,7 +7,7 @@ e_library::e_library(const Library& lib)
 {
 }
 
-string e_last_error::getLastError(DWORD hresult)
+string e_last_error::getLastErrorString(DWORD hresult)
 {
 	LPVOID lpMsgBuf = nullptr;
 	FormatMessageA(

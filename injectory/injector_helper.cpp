@@ -218,7 +218,7 @@ void Process::listModules()
 		if (ab == mem_basic_info.AllocationBase)
 			continue;
 
-		wstring ntMappedFileName = getInjected((HMODULE)mem_basic_info.AllocationBase).ntFilename(false);
+		wstring ntMappedFileName = getInjected((HMODULE)mem_basic_info.AllocationBase).mappedFilename(false);
 
 		if (!ntMappedFileName.empty())
 		{

@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <Psapi.h>
 
-using namespace std;
-
 
 // Matt Pietrek's function
 PIMAGE_SECTION_HEADER GetEnclosingSectionHeader(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader)
