@@ -235,23 +235,12 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 	try
 	{
-		shared_ptr<void> hFile(CreateFileW(
-			lib.path.c_str(),
-			GENERIC_READ,
-			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			nullptr,
-			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL,
-			nullptr),
-			CloseHandle);
-
-		if(hFile.get() == INVALID_HANDLE_VALUE)
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("CreateFileW failed"));
+		File file = File::create(lib.path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
 
 		if(GetFileAttributesW(lib.path.c_str()) & FILE_ATTRIBUTE_COMPRESSED)
 			fileSize = GetCompressedFileSizeW(lib.path.c_str(), NULL);
 		else
-			fileSize = GetFileSize(hFile.get(), NULL);
+			fileSize = GetFileSize(file.handle(), NULL);
 
 		if(fileSize == INVALID_FILE_SIZE)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not get size of file"));
@@ -260,7 +249,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 		{
 			DWORD NumBytesRead = 0;
-			if(!ReadFile(hFile.get(), dllBin.get(), fileSize, &NumBytesRead, FALSE))
+			if(!ReadFile(file.handle(), dllBin.get(), fileSize, &NumBytesRead, nullptr))
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("ReadFile failed"));
 		}
 		
