@@ -1,20 +1,19 @@
 #pragma once
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
-#include "injectory/handle.hpp"
+#include "injectory/winhandle.hpp"
 
 
 class Process;
 
-class Thread : public Handle
+class Thread : public WinHandle
 {
 private:
-	shared_ptr<void> handle_;
 	tid_t id_;
 
 public:
 	Thread(tid_t id = 0, handle_t handle = nullptr)
-		: Handle(handle, CloseHandle)
+		: WinHandle(handle, CloseHandle)
 		, id_(id)
 	{}
 

@@ -128,7 +128,7 @@
     <ClCompile Include="dllmain_remotecall.cpp" />
     <ClCompile Include="exception.cpp" />
     <ClCompile Include="findproc.cpp" />
-    <ClCompile Include="handle.cpp" />
+    <ClCompile Include="winhandle.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
     <ClCompile Include="common.cpp" />
@@ -147,6 +147,7 @@
     <ClInclude Include="module.hpp" />
     <ClInclude Include="process.hpp" />
     <ClInclude Include="thread.hpp" />
+    <ClInclude Include="winhandle.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

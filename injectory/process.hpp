@@ -2,6 +2,7 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
+#include "injectory/winhandle.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
 #include <Psapi.h>
@@ -12,19 +13,22 @@ class MemoryArea;
 struct ProcessWithThread;
 class Module;
 
-class Process : public Handle
+class Process : public WinHandle
 {
 private:
 	pid_t id_;
 	bool resumeOnDestruction;
 public:
-	explicit Process(pid_t id = 0, handle_t handle = nullptr)
-		: Handle(handle, CloseHandle)
+	Process(pid_t id, handle_t handle)
+		: WinHandle(handle, CloseHandle)
 		, id_(id)
 		, resumeOnDestruction(false)
 	{}
+	Process()
+		: Process(0, nullptr)
+	{}
 
-	virtual ~Process()
+	virtual ~Process() override
 	{
 		try
 		{

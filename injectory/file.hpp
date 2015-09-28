@@ -3,13 +3,13 @@
 #include "injectory/handle.hpp"
 
 
-class File : public Handle
+class File : public WinHandle
 {
 private:
 	path path_;
 private:
 	explicit File(path path_, handle_t handle)
-		: Handle(handle, CloseHandle)
+		: WinHandle(handle, CloseHandle)
 		, path_(path_)
 	{}
 public:

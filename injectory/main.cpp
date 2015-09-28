@@ -4,6 +4,7 @@
 #include "injectory/library.hpp"
 #include "injectory/process.hpp"
 #include "injectory/module.hpp"
+#include "injectory/winhandle.hpp"
 
 #include <boost/program_options.hpp>
 #include <csignal>
@@ -169,9 +170,9 @@ int main(int argc, char *argv[])
 				cout << proc.id() << endl;
 
 			if (vars.count("wait-for-input") && vars.count("wait-for-exit"))
-				Handle::wait({ Handle::std_in(), proc.handle() }, false);
+				WinHandle::wait({ WinHandle::std_in().handle(), proc.handle() }, false);
 			else if (vars.count("wait-for-input"))
-				Handle::std_in().wait();
+				WinHandle::std_in().wait();
 			else if (vars.count("wait-for-exit"))
 				proc.wait();
 

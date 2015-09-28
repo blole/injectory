@@ -38,7 +38,7 @@
     <ClCompile Include="exception.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="handle.cpp">
+    <ClCompile Include="winhandle.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,6 +71,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="handle.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="winhandle.hpp">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>
