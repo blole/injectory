@@ -1,12 +1,12 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
 #include "injectory/findproc.hpp"
-#include "injectory/injector_helper.hpp"
 #include "injectory/library.hpp"
 #include "injectory/process.hpp"
 #include "injectory/module.hpp"
 
 #include <boost/program_options.hpp>
+#include <csignal>
 namespace po = boost::program_options;
 
 #define VERSION "5.0-SNAPSHOT"
@@ -77,10 +77,7 @@ int main(int argc, char *argv[])
 			cout << Process::current.id() << endl;
 
 		if (vars.count("dbgpriv"))
-		{
-			if (!EnablePrivilegeW(L"SeDebugPrivilege", TRUE))
-				BOOST_THROW_EXCEPTION (ex_set_se_debug_privilege() << e_text("could not set SeDebugPrivilege"));
-		}
+			Process::current.enablePrivilege(L"SeDebugPrivilege");
 
 		bool wii = vars.count("wii") > 0;
 		bool mm = vars.count("mm") > 0;
