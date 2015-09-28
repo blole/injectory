@@ -225,11 +225,11 @@ Module Process::getInjected(HMODULE hmodule)
 
 Module Process::map(const File& file)
 {
-	shared_ptr<void> fileMap(CreateFileMappingW(file.handle(), nullptr, PAGE_READONLY, 0, 1, nullptr), CloseHandle);
+	WinHandle fileMap(CreateFileMappingW(file.handle(), nullptr, PAGE_READONLY, 0, 1, nullptr), CloseHandle);
 	if (!fileMap)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateFileMappingW(" + file.path().string() + ") failed"));
 
-	Module module((HMODULE)MapViewOfFile(fileMap.get(), FILE_MAP_READ, 0, 0, 1), Process::current, UnmapViewOfFile);
+	Module module((HMODULE)MapViewOfFile(fileMap.handle(), FILE_MAP_READ, 0, 0, 1), Process::current, UnmapViewOfFile);
 	if (!module)
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("MapViewOfFile() failed"));
 	return module;

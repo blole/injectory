@@ -3,24 +3,23 @@
 #include "injectory/exception.hpp"
 #include "injectory/process.hpp"
 
-class Module
+class Module : public Handle<HINSTANCE__>
 {
 	friend Module Process::isInjected(HMODULE);
 	friend Module Process::isInjected(const Library&);
 	friend Module Process::map(const File& file);
 private:
-	shared_ptr<HINSTANCE__> handle_;
 	Process process;
 
 private:
-	Module(HMODULE handle_, const Process& process)
-		: handle_(handle_, [](const HINSTANCE__* h){})
+	Module(HMODULE handle, const Process& process)
+		: Handle<HINSTANCE__>(handle)
 		, process(process)
 	{}
 
 	template <class Deleter>
-	Module(HMODULE handle_, const Process& process, Deleter deleter)
-		: handle_(handle_, deleter)
+	Module(HMODULE handle, const Process& process, Deleter deleter)
+		: Handle<HINSTANCE__>(handle, deleter)
 		, process(process)
 	{}
 
@@ -32,7 +31,7 @@ public:
 	Module(const wstring& moduleName)
 		: Module(GetModuleHandleW(moduleName.c_str()), Process::current)
 	{
-		if (!handle_)
+		if (!handle())
 			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to module '" + std::to_string(moduleName) + "'"));
 	}
 
@@ -51,12 +50,6 @@ public:
 		if (!module)
 			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not load module '" + std::to_string(moduleName) + "' locally"));
 		return module;
-	}
-
-public:
-	HMODULE handle() const
-	{
-		return handle_.get();
 	}
 
 public:
@@ -91,9 +84,4 @@ public:
 	static const Module& exe();
 	static const Module& kernel32();
 	static const Module& ntdll();
-public:
-	operator bool() const
-	{
-		return handle() != nullptr;
-	}
 };

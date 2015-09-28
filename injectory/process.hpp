@@ -141,12 +141,12 @@ public:
 
 	void remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
 
-	shared_ptr<void> openToken(DWORD desiredAccess)
+	WinHandle openToken(DWORD desiredAccess)
 	{
 		HANDLE hToken = nullptr;
 		if (!OpenProcessToken(handle(), desiredAccess, &hToken))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("OpenProcessToken() failed"));
-		return shared_ptr<void>(hToken, CloseHandle);
+		return WinHandle(hToken, CloseHandle);
 	}
 
 	void enablePrivilege(wstring privilegeName, bool enable = true)
@@ -163,8 +163,8 @@ public:
 		token_privileges.Privileges[0].Attributes = enable ? SE_PRIVILEGE_ENABLED : 0;
 
 		// Apply the adjusted privileges
-		auto token = openToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY | TOKEN_READ);
-		if (!AdjustTokenPrivileges(token.get(), FALSE, &token_privileges, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES)0, (PDWORD)0))
+		WinHandle token = openToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY | TOKEN_READ);
+		if (!AdjustTokenPrivileges(token.handle(), FALSE, &token_privileges, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES)0, (PDWORD)0))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not adjust token privileges"));
 	}
 
