@@ -1,11 +1,12 @@
 #pragma once
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
+#include "injectory/handle.hpp"
 
 
 class Process;
 
-class Thread
+class Thread : public Handle
 {
 private:
 	shared_ptr<void> handle_;
@@ -13,15 +14,10 @@ private:
 
 public:
 	Thread(tid_t id = 0, handle_t handle = nullptr)
-		: id_(id)
-		, handle_(handle, CloseHandle)
+		: Handle(handle, CloseHandle)
+		, id_(id)
 	{}
 
-	handle_t handle() const
-	{
-		return handle_.get();
-	}
-	
 	tid_t id() const
 	{
 		return id_;
@@ -46,10 +42,6 @@ public:
 
 	void setPriority(int priority);
 
-	DWORD wait(DWORD millis = INFINITE)
-	{
-		return WaitForSingleObject_Throwing(handle(), millis);
-	}
 	// returns the threads exit code
 	DWORD waitForTermination();
 

@@ -38,6 +38,9 @@
     <ClCompile Include="exception.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="handle.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="findproc.hpp">
@@ -65,6 +68,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="file.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="handle.hpp">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

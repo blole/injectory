@@ -14,7 +14,7 @@ private:
 
 private:
 	Module(HMODULE handle_, const Process& process)
-		: handle_(handle_)
+		: handle_(handle_, [](const HINSTANCE__* h){})
 		, process(process)
 	{}
 

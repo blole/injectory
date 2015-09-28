@@ -1,19 +1,20 @@
 #pragma once
 #include "injectory/exception.hpp"
+#include "injectory/handle.hpp"
 
-class File
+
+class File : public Handle
 {
 private:
 	path path_;
-	shared_ptr<void> handle_;
 private:
 	explicit File(path path_, handle_t handle)
-		: path_(path_)
-		, handle_(handle, CloseHandle)
+		: Handle(handle, CloseHandle)
+		, path_(path_)
 	{}
 public:
 	File()
-		: File(path(), nullptr)
+		: File(boost::filesystem::path(), nullptr)
 	{}
 
 public:
@@ -38,14 +39,5 @@ public:
 	const path& path() const
 	{
 		return path_;
-	}
-	handle_t handle() const
-	{
-		return handle_.get();
-	}
-
-	operator bool() const
-	{
-		return handle() != nullptr;
 	}
 };

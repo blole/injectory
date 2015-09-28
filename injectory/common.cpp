@@ -59,12 +59,3 @@ SYSTEM_INFO getNativeSystemInfo()
 
 	return systemInfo;
 }
-
-DWORD WaitForSingleObject_Throwing(HANDLE handle, DWORD millis)
-{
-	DWORD ret = WaitForSingleObject(handle, millis);
-	if (ret == WAIT_FAILED)
-		BOOST_THROW_EXCEPTION(ex_wait_for_single_object());
-	else
-		return ret;
-}

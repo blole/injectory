@@ -48,13 +48,16 @@ int main(int argc, char *argv[])
 			("eject,e",		po::value<vector<path>>()->value_name("<dll>"),	"eject libraries\n")
 
 			("mm",													  	"map the PE file into the target's address space")
-			("dbgpriv",												  	"set SeDebugPrivilege")
+			("dbgpriv",												  	"set SeDebugPrivilege\n")
+
 			("print-own-pid",											"print the pid of this process")
 			("print-pid",												"print the pid of the target process")
 			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
+
 			("wii",													  	"wait for target input idle before injecting")
 			("wait-for-exit",											"wait for the target to exit before exiting")
+			("wait-for-input",											"wait for user input before exiting")
 			("kill-on-exit",											"kill the target when exiting\n")
 
 			("verbose,v",												"")
@@ -126,7 +129,7 @@ int main(int argc, char *argv[])
 			if (wii)
 			{
 				proc.resume();
-				proc.waitForInputIdle();
+				proc.waitForInputIdle(5000);
 			}
 
 
@@ -164,7 +167,11 @@ int main(int argc, char *argv[])
 			if (vars.count("print-pid"))
 				cout << proc.id() << endl;
 
-			if (vars.count("wait-for-exit"))
+			if (vars.count("wait-for-input") && vars.count("wait-for-exit"))
+				Handle::wait({ Handle::std_in(), proc.handle() }, false);
+			else if (vars.count("wait-for-input"))
+				Handle::std_in().wait();
+			else if (vars.count("wait-for-exit"))
 				proc.wait();
 
 			if (vars.count("kill-on-exit"))

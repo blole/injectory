@@ -12,16 +12,15 @@ class MemoryArea;
 struct ProcessWithThread;
 class Module;
 
-class Process
+class Process : public Handle
 {
 private:
-	shared_ptr<void> handle_;
 	pid_t id_;
 	bool resumeOnDestruction;
 public:
 	explicit Process(pid_t id = 0, handle_t handle = nullptr)
-		: id_(id)
-		, handle_(handle, CloseHandle)
+		: Handle(handle, CloseHandle)
+		, id_(id)
 		, resumeOnDestruction(false)
 	{}
 
@@ -40,11 +39,6 @@ public:
 		resumeOnDestruction = resume;
 	}
 
-	handle_t handle() const
-	{
-		return handle_.get();
-	}
-
 	pid_t id() const
 	{
 		return id_;
@@ -58,15 +52,10 @@ public:
 		return path(buffer);
 	}
 
-	void waitForInputIdle(DWORD millis = 5000) const
+	void waitForInputIdle(DWORD millis) const
 	{
 		if (WaitForInputIdle(handle(), millis) != 0)
 			BOOST_THROW_EXCEPTION(ex_wait_for_input_idle());
-	}
-
-	DWORD wait(DWORD millis = INFINITE)
-	{
-		return WaitForSingleObject_Throwing(handle(), millis);
 	}
 
 	bool isRunning()
@@ -196,7 +185,7 @@ public:
 		STARTUPINFOW* startupInfo = { 0 });
 
 public:
-	operator bool() const
+	virtual operator bool() const override
 	{
 		return id() != 0 || handle() != nullptr;
 	}
