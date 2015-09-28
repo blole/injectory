@@ -11,6 +11,15 @@ namespace po = boost::program_options;
 
 #define VERSION "5.0-SNAPSHOT"
 
+Process proc;
+
+BOOL WINAPI CtrlHandlerRoutine(_In_ DWORD)
+{
+	if (proc)
+		proc.kill();
+	return false;
+}
+
 int main(int argc, char *argv[])
 {
 	try
@@ -46,7 +55,7 @@ int main(int argc, char *argv[])
 																		" visual studio by resuming all threads for 2 seconds")
 			("wii",													  	"wait for target input idle before injecting")
 			("wait-for-exit",											"wait for the target to exit before exiting")
-			("kill-on-exit",											"kill the target when exiting\n") // (also on forced exit)")
+			("kill-on-exit",											"kill the target when exiting\n")
 
 			("verbose,v",												"")
 			("version",													"display version information and exit")
@@ -83,8 +92,6 @@ int main(int argc, char *argv[])
 		bool mm = vars.count("mm") > 0;
 		bool verbose = vars.count("verbose") > 0;
 
-		Process proc;
-
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
@@ -112,6 +119,9 @@ int main(int argc, char *argv[])
 		{
 			if (proc.is64bit() != is64bit)
 				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc.id()));
+
+			if (vars.count("kill-on-exit"))
+				SetConsoleCtrlHandler(CtrlHandlerRoutine, true);
 
 			if (wii)
 			{
