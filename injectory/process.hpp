@@ -147,6 +147,34 @@ public:
 	}
 
 	void remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+
+	shared_ptr<void> openToken(DWORD desiredAccess)
+	{
+		HANDLE hToken = nullptr;
+		if (!OpenProcessToken(handle(), desiredAccess, &hToken))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("OpenProcessToken() failed"));
+		return shared_ptr<void>(hToken, CloseHandle);
+	}
+
+	void enablePrivilege(wstring privilegeName, bool enable = true)
+	{
+		LUID luid = {0};
+		if (!LookupPrivilegeValueW(nullptr, privilegeName.c_str(), &luid))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not look up privilege value for '" + std::to_string(privilegeName)+"'"));
+		if (luid.LowPart == 0 && luid.HighPart == 0)
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get LUID for '" + std::to_string(privilegeName)+"'"));
+
+		// Set the privileges we need
+		TOKEN_PRIVILEGES token_privileges = {1};
+		token_privileges.Privileges[0].Luid = luid;
+		token_privileges.Privileges[0].Attributes = enable ? SE_PRIVILEGE_ENABLED : 0;
+
+		// Apply the adjusted privileges
+		auto token = openToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY | TOKEN_READ);
+		if (!AdjustTokenPrivileges(token.get(), FALSE, &token_privileges, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES)0, (PDWORD)0))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not adjust token privileges"));
+	}
+
 public:
 	static Process open(const pid_t& pid, bool inheritHandle = false, DWORD desiredAccess =
 			PROCESS_QUERY_INFORMATION	| // Required by Alpha

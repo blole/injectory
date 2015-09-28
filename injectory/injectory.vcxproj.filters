@@ -17,9 +17,6 @@
     <ClCompile Include="dllmain_remotecall.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="injector_helper.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="findproc.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -44,9 +41,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="findproc.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="injector_helper.hpp">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="exception.hpp">

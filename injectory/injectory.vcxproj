@@ -128,7 +128,6 @@
     <ClCompile Include="dllmain_remotecall.cpp" />
     <ClCompile Include="exception.cpp" />
     <ClCompile Include="findproc.cpp" />
-    <ClCompile Include="injector_helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
     <ClCompile Include="common.cpp" />
@@ -140,7 +139,6 @@
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="file.hpp" />
     <ClInclude Include="findproc.hpp" />
-    <ClInclude Include="injector_helper.hpp" />
     <ClInclude Include="library.hpp" />
     <ClInclude Include="common.hpp" />
     <ClInclude Include="memoryarea.hpp" />

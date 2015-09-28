@@ -1,5 +1,4 @@
 #include "injectory/process.hpp"
-#include "injectory/injector_helper.hpp"
 #include "injectory/module.hpp"
 #include "injectory/library.hpp"
 #include "injectory/file.hpp"
