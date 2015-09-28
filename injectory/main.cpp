@@ -22,6 +22,7 @@ BOOL WINAPI CtrlHandlerRoutine(_In_ DWORD)
 
 int main(int argc, char *argv[])
 {
+	po::variables_map vars;
 	try
 	{
 		po::options_description desc(
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
 
 			("print-own-pid",											"print the pid of this process")
 			("print-pid",												"print the pid of the target process")
+			("rethrow",													"rethrow exceptions")
 			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
 
@@ -68,7 +70,6 @@ int main(int argc, char *argv[])
 			//("listmodules",									"dump modules associated with the specified process id")
 		;
 
-		po::variables_map vars;
 		po::store(po::parse_command_line(argc, argv, desc), vars);
 		po::notify(vars);
 
@@ -182,17 +183,20 @@ int main(int argc, char *argv[])
 	{
 		cerr << boost::diagnostic_information(e);
 		Sleep(1000);
-		throw;
+		if (vars.count("rethrow"))
+			throw;
 	}
 	catch (const exception& e)
 	{
 		cerr << "non-boost exception caught: " << e.what() << endl;
-		throw;
+		if (vars.count("rethrow"))
+			throw;
 	}
 	catch (...)
 	{
 		cerr << "exception of unknown type" << endl;
-		throw;
+		if (vars.count("rethrow"))
+			throw;
 	}
 
 	return 0;

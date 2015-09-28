@@ -6,7 +6,7 @@
     <DebugSuffix Condition="'$(Configuration)'!='Debug'"></DebugSuffix>
   </PropertyGroup>
   <PropertyGroup>
-    <LocalDebuggerCommandArguments>--launch starcraft.exe --inject bwapi-data/BWAPI$(DebugSuffix).dll --kill-on-exit --wait-for-exit --print-pid</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--launch starcraft.exe --inject bwapi-data/BWAPI$(DebugSuffix).dll --kill-on-exit --wait-for-exit --print-pid --rethrow</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\tm\starcraft</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
