@@ -40,9 +40,14 @@ public:
 		: Module(std::to_wstring(moduleName))
 	{}
 
-	static Module load(const wstring& moduleName, DWORD flags = 0)
+	static Module load(const wstring& moduleName, DWORD flags = 0, bool freeOnDestruction = true)
 	{
-		Module module(LoadLibraryExW(moduleName.c_str(), nullptr, flags), Process::current);
+		HMODULE handle_ = LoadLibraryExW(moduleName.c_str(), nullptr, flags);
+		Module module;
+		if (freeOnDestruction)
+			module = Module(handle_, Process::current, FreeLibrary);
+		else
+			module = Module(handle_, Process::current);
 		if (!module)
 			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not load module '" + std::to_string(moduleName) + "' locally"));
 		return module;
@@ -62,7 +67,6 @@ public:
 			// load module locally without running it and calculate offset
 			Module localModule = load(filename(), DONT_RESOLVE_DLL_REFERENCES);
 			LONG_PTR funcOffset = (DWORD_PTR)localModule.getProcAddress(procName) - (DWORD_PTR)localModule.handle();
-			FreeLibrary(localModule.handle());
 			return (FARPROC)((DWORD_PTR)handle() + funcOffset);
 		}
 		else

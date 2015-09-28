@@ -4,6 +4,7 @@
 #include "injectory/thread.hpp"
 #include <winnt.h>
 #include <boost/optional.hpp>
+#include <Psapi.h>
 
 class Library;
 class File;
@@ -47,6 +48,14 @@ public:
 	pid_t id() const
 	{
 		return id_;
+	}
+
+	path filename() const
+	{
+		WCHAR buffer[MAX_PATH + 1] = { 0 };
+		if (!GetModuleFileNameExW(handle(), (HMODULE)0, buffer, MAX_PATH))
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get path to process") << e_pid(id()));
+		return path(buffer);
 	}
 
 	void waitForInputIdle(DWORD millis = 5000) const

@@ -53,67 +53,33 @@ LPVOID GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, PBYTE imageBase
 
 void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
 {
-	LPSTR lpModuleName = 0;
-	WCHAR modulePath[MAX_PATH + 1] = {0};
-	WCHAR targetProcPath[MAX_PATH + 1] = {0};
-	WCHAR *pch = 0;
+	path parentPath = filename().parent_path();
+	if(!SetDllDirectoryW(parentPath.wstring().c_str()))
+		BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not set path to target process") << e_file_path(parentPath));
 
-	try
+	while (LPSTR lpModuleName = (LPSTR)GetPtrFromRVA(pImgImpDesc->Name, pNtHeader, imageBase))
 	{
-		//printf("Fixing Imports:\n");
+		// ACHTUNG: LoadLibraryEx kann eine DLL nur anhand des Namen aus einem anderen
+		// Verzeichnis laden wie der Zielprozess!
+		Module localModule = Module::load(std::to_wstring(lpModuleName), DONT_RESOLVE_DLL_REFERENCES);
 
-		// get target process path
-		if(!GetModuleFileNameExW(handle(), (HMODULE)0, targetProcPath, MAX_PATH))
-			BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get path to target process"));
+		Library lib(localModule.filename());
+		Module remoteModule = isInjected(lib);
+		if (!remoteModule)
+			remoteModule = inject(lib);
 
-		pch = wcsrchr(targetProcPath, '\\');
-		if(pch)
-			targetProcPath[ pch - targetProcPath + 1 ] = (WCHAR)0;
+		PIMAGE_THUNK_DATA itd = (PIMAGE_THUNK_DATA)GetPtrFromRVA(pImgImpDesc->FirstThunk, pNtHeader, imageBase);
 
-		if(!SetDllDirectoryW(targetProcPath))
-			BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not set path to target process") << e_file_path(targetProcPath));
-
-		while((lpModuleName = (LPSTR)GetPtrFromRVA(pImgImpDesc->Name, pNtHeader, imageBase)))
+		while(itd->u1.AddressOfData)
 		{
-			PIMAGE_THUNK_DATA itd = 0;
+			IMAGE_IMPORT_BY_NAME *iibn =
+				(PIMAGE_IMPORT_BY_NAME)GetPtrFromRVA(itd->u1.AddressOfData, pNtHeader, imageBase);
+			itd->u1.Function = (DWORD_PTR)remoteModule.getProcAddress((LPCSTR)iibn->Name);
 
-			//printf("module: %s\n", lpModuleName);
+			itd++;
+		}      
 
-			// ACHTUNG: LoadLibraryEx kann eine DLL nur anhand des Namen aus einem anderen
-			// Verzeichnis laden wie der Zielprozess!
-			shared_ptr<void> hLocalModule(LoadLibraryExA(lpModuleName, 0, DONT_RESOLVE_DLL_REFERENCES), FreeLibrary);
-			if(!hLocalModule)
-				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not load module locally"));
-
-			// get full path of module
-			if(!GetModuleFileNameW((HMODULE)hLocalModule.get(), modulePath, MAX_PATH))
-				BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not get path to module") << e_file_path(lpModuleName));
-
-			// Module already in process?
-			Module remoteModule = isInjected(Library(modulePath));
-			if (!remoteModule)
-				remoteModule = inject(modulePath);
-
-			itd = (PIMAGE_THUNK_DATA)GetPtrFromRVA(pImgImpDesc->FirstThunk, pNtHeader, imageBase);
-
-			while(itd->u1.AddressOfData)
-			{
-				IMAGE_IMPORT_BY_NAME *iibn =
-					(PIMAGE_IMPORT_BY_NAME)GetPtrFromRVA(itd->u1.AddressOfData, pNtHeader, imageBase);
-				itd->u1.Function = (DWORD_PTR)remoteModule.getProcAddress((LPCSTR)iibn->Name);
-
-				//printf("Function: %s\n", (LPCSTR)iibn->Name);
-
-				itd++;
-			}      
-
-			pImgImpDesc++;
-		}
-	}
-	catch (const boost::exception& e)
-	{
-		e << e_text("error fixing imports");
-		throw;
+		pImgImpDesc++;
 	}
 }
 
