@@ -46,8 +46,10 @@ int main(int argc, char *argv[])
 			("args",		po::wvalue<wstring>()->value_name("<string>")->default_value(L"", ""),
 																		"arguments for --launch:ed process\n")
 			
-			("inject,i",	po::value<vector<path>>()->value_name("<dll>"),	"inject libraries")
-			("eject,e",		po::value<vector<path>>()->value_name("<dll>"),	"eject libraries\n")
+			("inject,i",	po::value<vector<path>>()->value_name("<dll>")->multitoken(),
+																		"inject libraries")
+			("eject,e",		po::value<vector<path>>()->value_name("<dll>")->multitoken(),
+																		"eject libraries\n")
 
 			("mm",													  	"map the PE file into the target's address space")
 			("dbgpriv",												  	"set SeDebugPrivilege\n")
