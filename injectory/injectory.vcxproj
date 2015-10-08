@@ -141,6 +141,7 @@
     <ClInclude Include="file.hpp" />
     <ClInclude Include="findproc.hpp" />
     <ClInclude Include="handle.hpp" />
+    <ClInclude Include="job.hpp" />
     <ClInclude Include="library.hpp" />
     <ClInclude Include="common.hpp" />
     <ClInclude Include="memoryarea.hpp" />

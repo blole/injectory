@@ -18,8 +18,8 @@ Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 }
 
 ProcessWithThread Process::launch(const path& app, const wstring& args,
-	boost::optional<const vector<string>&> env,
-	boost::optional<const wstring&> cwd,
+	optional<const vector<string>&> env,
+	optional<const wstring&> cwd,
 	bool inheritHandles, DWORD creationFlags,
 	SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 	STARTUPINFOW* startupInfo)

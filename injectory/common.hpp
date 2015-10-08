@@ -3,6 +3,8 @@
 
 #include <boost/filesystem.hpp>
 using boost::filesystem::path;
+#include <boost/optional.hpp>
+using boost::optional;
 
 #include <locale>
 #include <codecvt>

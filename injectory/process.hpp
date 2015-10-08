@@ -4,7 +4,6 @@
 #include "injectory/thread.hpp"
 #include "injectory/winhandle.hpp"
 #include <winnt.h>
-#include <boost/optional.hpp>
 #include <Psapi.h>
 
 class Library;
@@ -17,31 +16,14 @@ class Process : public WinHandle
 {
 private:
 	pid_t id_;
-	bool resumeOnDestruction;
 public:
 	Process(pid_t id, handle_t handle)
 		: WinHandle(handle, CloseHandle)
 		, id_(id)
-		, resumeOnDestruction(false)
 	{}
 	Process()
 		: Process(0, nullptr)
 	{}
-
-	virtual ~Process() override
-	{
-		try
-		{
-			if (resumeOnDestruction)
-				resume();
-		}
-		catch (...) {}
-	}
-
-	void tryResumeOnDestruction(bool resume = true)
-	{
-		resumeOnDestruction = resume;
-	}
 
 	pid_t id() const
 	{
@@ -182,8 +164,8 @@ public:
 	// Creates a new process and its primary thread.
 	// The new process runs in the security context of the calling process.
 	static ProcessWithThread launch(const path& app, const wstring& args = L"",
-		boost::optional<const vector<string>&> env = boost::none,
-		boost::optional<const wstring&> cwd = boost::none,
+		optional<const vector<string>&> env = boost::none,
+		optional<const wstring&> cwd = boost::none,
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
 		STARTUPINFOW* startupInfo = { 0 });

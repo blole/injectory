@@ -4,22 +4,14 @@
 #include "injectory/library.hpp"
 #include "injectory/process.hpp"
 #include "injectory/module.hpp"
-#include "injectory/winhandle.hpp"
+#include "injectory/job.hpp"
 
 #include <boost/program_options.hpp>
-#include <csignal>
 namespace po = boost::program_options;
 
 #define VERSION "5.0-SNAPSHOT"
 
 Process proc;
-
-BOOL WINAPI CtrlHandlerRoutine(_In_ DWORD)
-{
-	if (proc)
-		proc.kill();
-	return false;
-}
 
 int main(int argc, char *argv[])
 {
@@ -113,6 +105,7 @@ int main(int argc, char *argv[])
 			
 			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
 		}
+
 		/*
 		else if (vars.count("procname"))
 		InjectEjectToProcessNameA(var_string("procname"), lib, nullptr, !eject, mm);
@@ -127,8 +120,15 @@ int main(int argc, char *argv[])
 			if (proc.is64bit() != is64bit)
 				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc.id()));
 
+			Job job;
 			if (vars.count("kill-on-exit"))
-				SetConsoleCtrlHandler(CtrlHandlerRoutine, true);
+			{
+				job = Job::create();
+				job.assignProcess(proc);
+				JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
+				jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+				job.setInfo(JobObjectExtendedLimitInformation, jeli);
+			}
 
 			if (wii)
 			{
