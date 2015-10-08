@@ -30,21 +30,26 @@ int main(int argc, char *argv[])
 			"Options");
 
 		desc.add_options()
-			("pid,p",		po::value<int>()->value_name("<pid>"),		"injection via process id")
-			//("procname",	po::value<string>()->value_name("<name>"),	"injection via process name")
-			//("wndtitle",	po::value<string>()->value_name("<title>"),	"injection via window title")
-			//("wndclass",	po::value<string>()->value_name("<class>"),	"injection via window class")
-			("launch,l",	po::value<path>()->value_name("<exe>"),		"launches the target in a new process")
-			("args",		po::wvalue<wstring>()->value_name("<string>")->default_value(L"", ""),
+			("pid,p",		po::value<int>()->value_name("PID"),		"injection via process id")
+			//("procname",	po::value<string>()->value_name("NAME"),	"injection via process name")
+			//("wndtitle",	po::value<string>()->value_name("TITLE"),	"injection via window title")
+			//("wndclass",	po::value<string>()->value_name("CLASS"),	"injection via window class")
+			("launch,l",	po::value<path>()->value_name("EXE"),		"launches the target in a new process")
+			("args,a",		po::wvalue<wstring>()->value_name("STRING")->default_value(L"", ""),
 																		"arguments for --launch:ed process\n")
 			
-			("inject,i",	po::value<vector<path>>()->value_name("<dll>")->multitoken(),
-																		"inject libraries")
-			("eject,e",		po::value<vector<path>>()->value_name("<dll>")->multitoken(),
-																		"eject libraries\n")
-
-			("mm",													  	"map the PE file into the target's address space")
-			("dbgpriv",												  	"set SeDebugPrivilege\n")
+			("inject,i",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(),""),
+																		"inject libraries before main")
+			("injectw,I",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
+																		"inject libraries when input idle")
+			("map,m",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(),""),
+																		"map file into target before main")
+			("mapw,M",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
+																		"map file into target when input idle")
+			("eject,e",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
+																		"eject libraries before main")
+			("ejectw,E",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
+																		"eject libraries when input idle\n")
 
 			("print-own-pid",											"print the pid of this process")
 			("print-pid",												"print the pid of the target process")
@@ -52,7 +57,7 @@ int main(int argc, char *argv[])
 			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
 
-			("wii",													  	"wait for target input idle before injecting")
+			("dbgpriv",												  	"set SeDebugPrivilege")
 			("wait-for-exit",											"wait for the target to exit before exiting")
 			("wait-for-input",											"wait for user input before exiting")
 			("kill-on-exit",											"kill the target when exiting\n")
@@ -87,8 +92,6 @@ int main(int argc, char *argv[])
 		if (vars.count("dbgpriv"))
 			Process::current.enablePrivilege(L"SeDebugPrivilege");
 
-		bool wii = vars.count("wii") > 0;
-		bool mm = vars.count("mm") > 0;
 		bool verbose = vars.count("verbose") > 0;
 
 		if (vars.count("pid"))
@@ -130,32 +133,27 @@ int main(int argc, char *argv[])
 				job.setInfo(JobObjectExtendedLimitInformation, jeli);
 			}
 
-			if (wii)
-			{
-				proc.resume();
+			for (const Library& lib : vars["inject"].as<vector<path>>())
+				proc.inject(lib, verbose);
+
+			for (const Library& lib : vars["map"].as<vector<path>>())
+				proc.mapRemoteModule(lib, verbose);
+
+			for (const Library& lib : vars["eject"].as<vector<path>>())
+				proc.getInjected(lib).eject();
+
+			proc.resume();
+			if (!vars["injectw"].empty() || !vars["mapw"].empty() || !vars["ejectw"].empty())
 				proc.waitForInputIdle(5000);
-			}
 
+			for (const Library& lib : vars["injectw"].as<vector<path>>())
+				proc.inject(lib, verbose);
 
-			if (vars.count("inject"))
-			{
-				for (const Library& lib : vars["inject"].as<vector<path>>())
-				{
-					if (mm)
-						proc.mapRemoteModule(lib, verbose);
-					else
-						proc.inject(lib, verbose);
-				}
-			}
+			for (const Library& lib : vars["mapw"].as<vector<path>>())
+				proc.mapRemoteModule(lib, verbose);
 
-			if (vars.count("eject"))
-			{
-				for (const Library& lib : vars["eject"].as<vector<path>>())
-					proc.getInjected(lib).eject();
-			}
-
-			if (!wii)
-				proc.resume();
+			for (const Library& lib : vars["ejectw"].as<vector<path>>())
+				proc.getInjected(lib).eject();
 
 			if (vars.count("vs-debug-workaround"))
 			{
