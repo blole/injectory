@@ -59,7 +59,6 @@ int main(int argc, char *argv[])
 
 			("dbgpriv",												  	"set SeDebugPrivilege")
 			("wait-for-exit",											"wait for the target to exit before exiting")
-			("wait-for-input",											"wait for user input before exiting")
 			("kill-on-exit",											"kill the target when exiting\n")
 
 			("verbose,v",												"")
@@ -169,11 +168,7 @@ int main(int argc, char *argv[])
 			if (vars.count("print-pid"))
 				cout << proc.id() << endl;
 
-			if (vars.count("wait-for-input") && vars.count("wait-for-exit"))
-				WinHandle::wait({ WinHandle::std_in().handle(), proc.handle() }, false);
-			else if (vars.count("wait-for-input"))
-				WinHandle::std_in().wait();
-			else if (vars.count("wait-for-exit"))
+			if (vars.count("wait-for-exit"))
 				proc.wait();
 
 			if (vars.count("kill-on-exit"))
