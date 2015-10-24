@@ -172,24 +172,19 @@ int main(int argc, char *argv[])
 				proc.kill();
 		}
 	}
-	catch (const boost::exception& e)
-	{
-		cerr << boost::diagnostic_information(e);
-		Sleep(1000);
-		if (vars.count("rethrow"))
-			throw;
-	}
 	catch (const exception& e)
 	{
-		cerr << "non-boost exception caught: " << e.what() << endl;
-		if (vars.count("rethrow"))
-			throw;
+		const boost::exception* be = boost::exception_detail::get_boost_exception(&e);
+		if (be)
+			cerr << "injectory: " << boost::diagnostic_information_what(*be);
+		else
+			cerr << "injectory: " << e.what() << endl;
+		if (vars.count("rethrow")) throw; else return 1;
 	}
 	catch (...)
 	{
-		cerr << "exception of unknown type" << endl;
-		if (vars.count("rethrow"))
-			throw;
+		cerr << "injectory: unkown exception" << endl;
+		if (vars.count("rethrow")) throw; else return 1;
 	}
 
 	return 0;
