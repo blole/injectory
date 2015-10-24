@@ -132,27 +132,24 @@ int main(int argc, char *argv[])
 				job.setInfo(JobObjectExtendedLimitInformation, jeli);
 			}
 
-			for (const Library& lib : vars["inject"].as<vector<path>>())
-				proc.inject(lib, verbose);
+			auto& inject  = vars["inject"] .as<vector<path>>();
+			auto& map     = vars["map"]    .as<vector<path>>();
+			auto& eject   = vars["eject"]  .as<vector<path>>();
+			auto& injectw = vars["injectw"].as<vector<path>>();
+			auto& mapw    = vars["mapw"]   .as<vector<path>>();
+			auto& ejectw  = vars["ejectw"] .as<vector<path>>();
 
-			for (const Library& lib : vars["map"].as<vector<path>>())
-				proc.mapRemoteModule(lib, verbose);
-
-			for (const Library& lib : vars["eject"].as<vector<path>>())
-				proc.getInjected(lib).eject();
+			for (const Library& lib : inject)	proc.inject(lib, verbose);
+			for (const Library& lib : map)		proc.mapRemoteModule(lib, verbose);
+			for (const Library& lib : eject)	proc.getInjected(lib).eject();
 
 			proc.resume();
-			if (!vars["injectw"].empty() || !vars["mapw"].empty() || !vars["ejectw"].empty())
+			if (!injectw.empty() || !mapw.empty() || !ejectw.empty())
 				proc.waitForInputIdle(5000);
 
-			for (const Library& lib : vars["injectw"].as<vector<path>>())
-				proc.inject(lib, verbose);
-
-			for (const Library& lib : vars["mapw"].as<vector<path>>())
-				proc.mapRemoteModule(lib, verbose);
-
-			for (const Library& lib : vars["ejectw"].as<vector<path>>())
-				proc.getInjected(lib).eject();
+			for (const Library& lib : injectw)	proc.inject(lib, verbose);
+			for (const Library& lib : mapw)		proc.mapRemoteModule(lib, verbose);
+			for (const Library& lib : ejectw)	proc.getInjected(lib).eject();
 
 			if (vars.count("vs-debug-workaround"))
 			{
