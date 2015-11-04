@@ -9,7 +9,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "5.0"
+#define VERSION "5.1-SNAPSHOT"
 
 Process proc;
 
