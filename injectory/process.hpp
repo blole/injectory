@@ -91,8 +91,12 @@ public:
 	MEMORY_BASIC_INFORMATION memBasicInfo(LPCVOID addr)
 	{
 		MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
-		if (!VirtualQueryEx(handle(), addr, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION)))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()));
+		SIZE_T size = VirtualQueryEx(handle(), addr, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION));
+		if (!size)
+		{
+			e_last_error last_error;
+			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()) << last_error);
+		}
 		return mem_basic_info;
 	}
 

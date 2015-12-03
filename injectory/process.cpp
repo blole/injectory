@@ -65,7 +65,16 @@ vector<Thread> Process::threads(bool inheritHandle, DWORD desiredAccess) const
 				if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID))
 				{
 					if (te.th32OwnerProcessID == id())
-						threads_.push_back(Thread::open(te.th32ThreadID, inheritHandle, desiredAccess));
+					{
+						try
+						{
+							threads_.push_back(Thread::open(te.th32ThreadID, inheritHandle, desiredAccess));
+						}
+						catch (...)
+						{
+							// if the process is running, threads may have terminated
+						}
+					}
 				}
 				te.dwSize = sizeof(te);
 			} while (Thread32Next(h, &te));
