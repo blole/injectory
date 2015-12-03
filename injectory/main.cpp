@@ -11,7 +11,7 @@ namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "5.1-SNAPSHOT"
+#define VERSION "5.0.1"
 
 template <typename T>
 po::typed_value<vector<T>, wchar_t>* wvector()
