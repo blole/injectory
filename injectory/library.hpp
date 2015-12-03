@@ -22,7 +22,7 @@ public:
 		: Library(boost::filesystem::path(path_))
 	{}
 
-	Library(const wchar_t* path_)
+	Library(const wstring& path_)
 		: Library(boost::filesystem::path(path_))
 	{}
 

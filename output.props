@@ -28,7 +28,6 @@
   <ItemGroup>
     <BuildMacro Include="BuildDir">
       <Value>$(BuildDir)</Value>
-      <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
 </Project>

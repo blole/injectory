@@ -13,6 +13,12 @@ namespace po = boost::program_options;
 
 #define VERSION "5.1-SNAPSHOT"
 
+template <typename T>
+po::typed_value<vector<T>, wchar_t>* wvector()
+{
+	return po::wvalue<vector<T>>()->multitoken()->default_value({}, "");
+}
+
 Process proc;
 
 int main(int argc, char *argv[])
@@ -26,8 +32,8 @@ int main(int argc, char *argv[])
 			"<exe> and <dll> can be relative paths\n"
 			"\n"
 			"Examples:\n"
-			"  injectory -l a.exe -i b.dll --args \"1 2 3\" --wii\n"
-			"  injectory -p 12345 -i b.dll --mm --wait-for-exit\n"
+			"  injectory --launch a.exe -map b.dll --args \"1 2 3\"\n"
+			"  injectory --pid 12345 -inject b.dll --wait-for-exit\n"
 			"\n"
 			"Options");
 
@@ -36,22 +42,16 @@ int main(int argc, char *argv[])
 			//("procname",	po::value<string>()->value_name("NAME"),	"injection via process name")
 			//("wndtitle",	po::value<string>()->value_name("TITLE"),	"injection via window title")
 			//("wndclass",	po::value<string>()->value_name("CLASS"),	"injection via window class")
-			("launch,l",	po::value<path>()->value_name("EXE"),		"launches the target in a new process")
+			("launch,l",	po::wvalue<wstring>()->value_name("EXE"),	"launches the target in a new process")
 			("args,a",		po::wvalue<wstring>()->value_name("STRING")->default_value(L"", ""),
 																		"arguments for --launch:ed process\n")
 			
-			("inject,i",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(),""),
-																		"inject libraries before main")
-			("injectw,I",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
-																		"inject libraries when input idle")
-			("map,m",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(),""),
-																		"map file into target before main")
-			("mapw,M",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
-																		"map file into target when input idle")
-			("eject,e",		po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
-																		"eject libraries before main")
-			("ejectw,E",	po::value<vector<path>>()->value_name("DLL...")->multitoken()->default_value(vector<path>(), ""),
-																		"eject libraries when input idle\n")
+			("inject,i",	wvector<wstring>()->value_name("DLL..."),	"inject libraries before main")
+			("injectw,I",	wvector<wstring>()->value_name("DLL..."),	"inject libraries when input idle")
+			("map,m",		wvector<wstring>()->value_name("DLL..."),	"map file into target before main")
+			("mapw,M",		wvector<wstring>()->value_name("DLL..."),	"map file into target when input idle")
+			("eject,e",		wvector<wstring>()->value_name("DLL..."),	"eject libraries before main")
+			("ejectw,E",	wvector<wstring>()->value_name("DLL..."),	"eject libraries when input idle\n")
 
 			("print-own-pid",											"print the pid of this process")
 			("print-pid",												"print the pid of the target process")
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 		else if (vars.count("launch"))
 		{
 			using boost::none;
-			path    app  = vars["launch"].as<path>();
+			path    app  = vars["launch"].as<wstring>();
 			wstring args = vars["args"].as<wstring>();
 			
 			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
@@ -134,12 +134,12 @@ int main(int argc, char *argv[])
 				job.setInfo(JobObjectExtendedLimitInformation, jeli);
 			}
 
-			auto& inject  = vars["inject"] .as<vector<path>>();
-			auto& map     = vars["map"]    .as<vector<path>>();
-			auto& eject   = vars["eject"]  .as<vector<path>>();
-			auto& injectw = vars["injectw"].as<vector<path>>();
-			auto& mapw    = vars["mapw"]   .as<vector<path>>();
-			auto& ejectw  = vars["ejectw"] .as<vector<path>>();
+			auto& inject  = vars["inject"] .as<vector<wstring>>();
+			auto& map     = vars["map"]    .as<vector<wstring>>();
+			auto& eject   = vars["eject"]  .as<vector<wstring>>();
+			auto& injectw = vars["injectw"].as<vector<wstring>>();
+			auto& mapw    = vars["mapw"]   .as<vector<wstring>>();
+			auto& ejectw  = vars["ejectw"] .as<vector<wstring>>();
 
 			for (const Library& lib : inject)	proc.inject(lib, verbose);
 			for (const Library& lib : map)		proc.mapRemoteModule(lib, verbose);
