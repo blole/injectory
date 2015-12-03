@@ -6,6 +6,8 @@
 #include "injectory/module.hpp"
 #include "injectory/job.hpp"
 
+#include <boost/algorithm/string.hpp>
+namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -175,7 +177,7 @@ int main(int argc, char *argv[])
 	catch (const exception& e)
 	{
 		const boost::exception* be = boost::exception_detail::get_boost_exception(&e);
-		if (be)
+		if (be && !algo::starts_with(boost::diagnostic_information_what(*be), "Throw location unknown"))
 			cerr << "injectory: " << boost::diagnostic_information_what(*be);
 		else
 			cerr << "injectory: " << e.what() << endl;
