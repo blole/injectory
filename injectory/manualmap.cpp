@@ -99,7 +99,7 @@ MapSections(
 		LPVOID lpBaseAddress = (LPVOID)( (DWORD_PTR)lpModuleBase + section->VirtualAddress );
 		LPCVOID lpBuffer = (LPCVOID)( (DWORD_PTR)dllBin + section->PointerToRawData );
 		SIZE_T NumBytesWritten = 0;
-		PDWORD lpflOldProtect = 0;
+		//PDWORD lpflOldProtect = 0;
 
 		if(!WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, section->SizeOfRawData, &NumBytesWritten) ||
 			NumBytesWritten != section->SizeOfRawData)
@@ -138,7 +138,7 @@ FixRelocations(
 	)
 {
 	LONG_PTR delta = (DWORD_PTR)lpModuleBase - pNtHeader->OptionalHeader.ImageBase;
-	SIZE_T relocationSize = pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+	//SIZE_T relocationSize = pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
 	WORD *pRelocData = 0;
 
 	//printf("FixRelocs:\n");
@@ -195,8 +195,8 @@ FixRelocations(
 }
 
 void Process::callTlsInitializers(
-	PBYTE imageBase,
-	PIMAGE_NT_HEADERS pNtHeader,
+	PBYTE /*imageBase*/,
+	PIMAGE_NT_HEADERS /*pNtHeader*/,
 	HMODULE hModule,
 	DWORD fdwReason,
 	PIMAGE_TLS_DIRECTORY pImgTlsDir)
@@ -205,7 +205,7 @@ void Process::callTlsInitializers(
 
 	if (pCallbacks)
 	{
-		while (true)
+		for (;;)
 		{
 			SIZE_T NumBytesRead = 0;
 			LPVOID callback = 0;

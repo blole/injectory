@@ -172,7 +172,7 @@ public:
 		optional<const wstring&> cwd = boost::none,
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
-		STARTUPINFOW* startupInfo = { 0 });
+		STARTUPINFOW startupInfo = {});
 
 public:
 	virtual operator bool() const override

@@ -39,17 +39,17 @@ public:
 		return address_.get();
 	}
 
-	void write(LPCVOID from, SIZE_T size)
+	void write(LPCVOID from, SIZE_T writeSize)
 	{
 		SIZE_T writtenSize = 0;
-		if (!WriteProcessMemory(process.handle(), address(), from, size, &writtenSize) || writtenSize != size)
+		if (!WriteProcessMemory(process.handle(), address(), from, writeSize, &writtenSize) || writtenSize != writeSize)
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
-		flushInstructionCache(size);
+		flushInstructionCache(writeSize);
 	}
 
-	void flushInstructionCache(SIZE_T size)
+	void flushInstructionCache(SIZE_T flushSize)
 	{
-		if (!FlushInstructionCache(process.handle(), address(), size))
+		if (!FlushInstructionCache(process.handle(), address(), flushSize))
 			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
 	}
 };

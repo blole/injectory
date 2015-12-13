@@ -11,7 +11,7 @@ namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "5.0.1"
+#define VERSION "5.0.2-SNAPSHOT"
 
 template <typename T>
 po::typed_value<vector<T>, wchar_t>* wvector()
@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
 					proc.wait(100);
 					proc.resumeAllThreads();
 				}
-				cout << "done" << endl;
 			}
 
 			if (vars.count("print-pid"))

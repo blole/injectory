@@ -27,11 +27,7 @@ public:
 
 	static DWORD wait(const vector<handle_t>& handles, bool waitAll, DWORD millis = INFINITE)
 	{
-		//vector<HANDLE> winHandles;
-		//std::transform(handles.begin(), handles.end(), std::back_inserter(winHandles), [](const WinHandle& h) {return h.handle();});
-
-		//DWORD ret = WaitForMultipleObjects(handles.size(), &winHandles[0], false, INFINITY);
-		DWORD ret = WaitForMultipleObjects(handles.size(), &handles[0], false, INFINITY);
+		DWORD ret = WaitForMultipleObjects(handles.size(), &handles[0], waitAll, millis);
 		if (ret == WAIT_FAILED)
 			BOOST_THROW_EXCEPTION(ex_wait_for_multiple_objects());
 		else

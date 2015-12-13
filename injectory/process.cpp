@@ -22,14 +22,14 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 	optional<const wstring&> cwd,
 	bool inheritHandles, DWORD creationFlags,
 	SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
-	STARTUPINFOW* startupInfo)
+	STARTUPINFOW startupInfo)
 {
-	PROCESS_INFORMATION pi = { 0 };
-	STARTUPINFO			si = { 0 };
-	si.cb = sizeof(STARTUPINFO); // needed
+	startupInfo.cb = sizeof(STARTUPINFOW); // needed
+	PROCESS_INFORMATION pi = {};
 	wstring commandLine = app.wstring() + L" " + args;
 
-	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles, creationFlags, nullptr, nullptr, &si, &pi))
+	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles,
+			creationFlags, nullptr, nullptr, &startupInfo, &pi))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
 	else
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
