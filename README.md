@@ -8,30 +8,39 @@ Uses LoadLibrary (or alternatively a manual version) and CreateRemoteThread.
 
 ## Usage
 ```
+usage: injectory TARGET [OPTION]...
+inject DLL:s into processes
+
 Examples:
-  injectory -l a.exe -i b.dll --args "1 2 3" --wii
-  injectory -p 12345 -i b.dll --mm --wait-for-exit
+  injectory --launch a.exe --map b.dll --args "1 2 3"
+  injectory --pid 12345 --inject b.dll --wait-for-exit
+
+Targets:
+  -p [ --pid ] PID         injection via process id
+  -l [ --launch ] EXE      launches the target in a new process
+  -a [ --args ] STRING     arguments for --launch:ed process
 
 Options:
-  -p [ --pid ] <pid>     injection via process id
-  -l [ --launch ] <exe>  launches the target in a new process
-  --args <string>        arguments for --launch:ed process
+  -i [ --inject ] DLL...   inject libraries before main
+  -I [ --injectw ] DLL...  inject libraries when input idle
+  -m [ --map ] DLL...      map file into target before main
+  -M [ --mapw ] DLL...     map file into target when input idle
+  -e [ --eject ] DLL...    eject libraries before main
+  -E [ --ejectw ] DLL...   eject libraries when input idle
 
-  -i [ --inject ] <dll>  inject libraries
-  -e [ --eject ] <dll>   eject libraries
-
-  --mm                   map the PE file into the target's address space
-  --dbgpriv              set SeDebugPrivilege
-  --print-pid            print the pid of the (started) process
-  --vs-debug-workaround  workaround threads left suspended when debugging with
-                         visual studio by resuming all threads for 2 seconds
-  --wii                  wait for target input idle before injecting
-  --wait-for-exit        wait for the target to exit before exiting
-  --kill-on-exit         kill the target when exiting
+  --print-own-pid          print the pid of this process
+  --print-pid              print the pid of the target process
+  --rethrow                rethrow exceptions
+  --vs-debug-workaround    workaround for threads left suspended when debugging
+                           with visual studio by resuming all threads for 2
+                           seconds
+  --dbgpriv                set SeDebugPrivilege
+  --wait-for-exit          wait for the target to exit before exiting
+  --kill-on-exit           kill the target when exiting
 
   -v [ --verbose ]
-  --version              display version information and exit
-  --help                 display help message and exit
+  --version                display version information and exit
+  --help                   display help message and exit
 ```
 
 ## Credits

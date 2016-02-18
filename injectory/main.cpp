@@ -26,26 +26,20 @@ int main(int argc, char *argv[])
 	po::variables_map vars;
 	try
 	{
-		po::options_description desc(
-			"usage: injectory [OPTION]...\n"
-			"inject DLL:s into processes\n"
-			"<exe> and <dll> can be relative paths\n"
-			"\n"
-			"Examples:\n"
-			"  injectory --launch a.exe -map b.dll --args \"1 2 3\"\n"
-			"  injectory --pid 12345 -inject b.dll --wait-for-exit\n"
-			"\n"
-			"Options");
+		po::options_description desc;
+		po::options_description targets("Targets");
+		po::options_description options("Options");
 
-		desc.add_options()
+		targets.add_options()
 			("pid,p",		po::value<int>()->value_name("PID"),		"injection via process id")
 			//("procname",	po::value<string>()->value_name("NAME"),	"injection via process name")
 			//("wndtitle",	po::value<string>()->value_name("TITLE"),	"injection via window title")
 			//("wndclass",	po::value<string>()->value_name("CLASS"),	"injection via window class")
 			("launch,l",	po::wvalue<wstring>()->value_name("EXE"),	"launches the target in a new process")
 			("args,a",		po::wvalue<wstring>()->value_name("STRING")->default_value(L"", ""),
-																		"arguments for --launch:ed process\n")
-			
+																		"arguments for --launch:ed process")
+		;
+		options.add_options()
 			("inject,i",	wvector<wstring>()->value_name("DLL..."),	"inject libraries before main")
 			("injectw,I",	wvector<wstring>()->value_name("DLL..."),	"inject libraries when input idle")
 			("map,m",		wvector<wstring>()->value_name("DLL..."),	"map file into target before main")
@@ -56,7 +50,7 @@ int main(int argc, char *argv[])
 			("print-own-pid",											"print the pid of this process")
 			("print-pid",												"print the pid of the target process")
 			("rethrow",													"rethrow exceptions")
-			("vs-debug-workaround",									  	"workaround threads left suspended when debugging with"
+			("vs-debug-workaround",									  	"workaround for threads left suspended when debugging with"
 																		" visual studio by resuming all threads for 2 seconds")
 
 			("dbgpriv",												  	"set SeDebugPrivilege")
@@ -70,13 +64,21 @@ int main(int argc, char *argv[])
 			//("a process (without calling LoadLibrary)")
 			//("listmodules",									"dump modules associated with the specified process id")
 		;
+		desc.add(targets);
+		desc.add(options);
 
 		po::store(po::parse_command_line(argc, argv, desc), vars);
 		po::notify(vars);
 
 		if (vars.count("help"))
 		{
-			cout << desc << endl;
+			cout << "usage: injectory TARGET [OPTION]..." << endl
+			     << "inject DLL:s into processes" << endl
+			     << endl
+			     << "Examples:" << endl
+			     << "  injectory --launch a.exe --map b.dll --args \"1 2 3\"" << endl
+			     << "  injectory --pid 12345 --inject b.dll --wait-for-exit" << endl
+			     << desc << endl;
 			return 0;
 		}
 		
@@ -109,6 +111,8 @@ int main(int argc, char *argv[])
 			
 			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
 		}
+		else
+			throw po::error("no --pid or --launch given");
 
 		/*
 		else if (vars.count("procname"))
@@ -172,6 +176,13 @@ int main(int argc, char *argv[])
 			if (vars.count("kill-on-exit"))
 				proc.kill();
 		}
+	}
+	catch (const boost::program_options::error& e)
+	{
+		cerr << "injectory: " << e.what() << endl;
+		cerr << "Try 'injectory --help' for more information." << endl;
+
+		if (vars.count("rethrow")) throw; else return 1;
 	}
 	catch (const exception& e)
 	{
