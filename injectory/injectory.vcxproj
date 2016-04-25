@@ -56,38 +56,40 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\output.props" />
-    <Import Project="..\boost.props" />
     <Import Project="..\debug-starcraft-bot.props" />
+    <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\output.props" />
-    <Import Project="..\boost.props" />
     <Import Project="..\debug-starcraft-bot.props" />
+    <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\output.props" />
-    <Import Project="..\boost.props" />
     <Import Project="..\debug-starcraft-bot.props" />
+    <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\output.props" />
-    <Import Project="..\boost.props" />
     <Import Project="..\debug-starcraft-bot.props" />
+    <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>$(ProjectName).$(PlatformShortName)</TargetName>
+    <BuildDir>$(SolutionDir)build\$(PlatformShortName)\$(Configuration)\</BuildDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>$(ProjectName).$(PlatformShortName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>$(ProjectName).$(PlatformShortName)</TargetName>
+    <BuildDir>$(SolutionDir)build\$(PlatformShortName)\$(Configuration)\</BuildDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>$(ProjectName).$(PlatformShortName)</TargetName>
@@ -162,7 +164,25 @@
     <ClInclude Include="thread.hpp" />
     <ClInclude Include="winhandle.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\boost.1.60.0.0\build\native\boost.targets" Condition="Exists('..\packages\boost.1.60.0.0\build\native\boost.targets')" />
+    <Import Project="..\packages\boost_filesystem-vc140.1.60.0.0\build\native\boost_filesystem-vc140.targets" Condition="Exists('..\packages\boost_filesystem-vc140.1.60.0.0\build\native\boost_filesystem-vc140.targets')" />
+    <Import Project="..\packages\boost_system-vc140.1.60.0.0\build\native\boost_system-vc140.targets" Condition="Exists('..\packages\boost_system-vc140.1.60.0.0\build\native\boost_system-vc140.targets')" />
+    <Import Project="..\packages\boost_program_options-vc140.1.60.0.0\build\native\boost_program_options-vc140.targets" Condition="Exists('..\packages\boost_program_options-vc140.1.60.0.0\build\native\boost_program_options-vc140.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\boost.1.60.0.0\build\native\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost.1.60.0.0\build\native\boost.targets'))" />
+    <Error Condition="!Exists('..\packages\boost_filesystem-vc140.1.60.0.0\build\native\boost_filesystem-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost_filesystem-vc140.1.60.0.0\build\native\boost_filesystem-vc140.targets'))" />
+    <Error Condition="!Exists('..\packages\boost_system-vc140.1.60.0.0\build\native\boost_system-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost_system-vc140.1.60.0.0\build\native\boost_system-vc140.targets'))" />
+    <Error Condition="!Exists('..\packages\boost_program_options-vc140.1.60.0.0\build\native\boost_program_options-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost_program_options-vc140.1.60.0.0\build\native\boost_program_options-vc140.targets'))" />
+  </Target>
 </Project>
