@@ -32,23 +32,29 @@ public:
 		: Module(GetModuleHandleW(moduleName.c_str()), Process::current)
 	{
 		if (!handle())
-			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not get handle to module '" + std::to_string(moduleName) + "'"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("GetModuleHandle") << e_text("could not get handle to module '" + to_string(moduleName) + "'") << e_last_error(errcode));
+		}
 	}
 
 	Module(const string& moduleName)
-		: Module(std::to_wstring(moduleName))
+		: Module(to_wstring(moduleName))
 	{}
 
 	static Module load(const wstring& moduleName, DWORD flags = 0, bool freeOnDestruction = true)
 	{
 		HMODULE handle_ = LoadLibraryExW(moduleName.c_str(), nullptr, flags);
+		if (!handle_)
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("LoadLibraryEx") << e_text("could not load module '" + to_string(moduleName) + "' locally") << e_last_error(errcode));
+		}
 		Module module;
 		if (freeOnDestruction)
 			module = Module(handle_, Process::current, FreeLibrary);
 		else
 			module = Module(handle_, Process::current);
-		if (!module)
-			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_text("could not load module '" + std::to_string(moduleName) + "' locally"));
 		return module;
 	}
 
@@ -66,15 +72,18 @@ public:
 		{
 			FARPROC procAddress = GetProcAddress(handle(), procName.c_str());
 			if (!procAddress)
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get the address of '" + procName + "'"));
+			{
+				DWORD errcode = GetLastError();
+				BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetProcAddress") << e_text("could not get the address of '" + procName + "'") << e_last_error(errcode));
+			}
 			return procAddress;
 		}
 	}
 
 	template<class R, class... A>
-	std::function<R(A...)> getProcAddress(string procName) const
+	function<R(A...)> getProcAddress(string procName) const
 	{
-		return std::function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
+		return function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
 	}
 
 	wstring filename() const;

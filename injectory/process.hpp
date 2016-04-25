@@ -30,12 +30,15 @@ public:
 		return id_;
 	}
 
-	path filename() const
+	fs::path filename() const
 	{
 		WCHAR buffer[MAX_PATH + 1] = { 0 };
 		if (!GetModuleFileNameExW(handle(), (HMODULE)0, buffer, MAX_PATH))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get path to process") << e_pid(id()));
-		return path(buffer);
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_text("could not get path to process") << e_pid(id()) << e_last_error(errcode));
+		}
+		return buffer;
 	}
 
 	void waitForInputIdle(DWORD millis) const
@@ -53,9 +56,9 @@ public:
 	{
 		if (!TerminateProcess(handle(), exitCode))
 		{
-			e_last_error last_error;
+			DWORD errcode = GetLastError();
 			if (isRunning())
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("error killing process") << e_pid(id()) << last_error);
+				BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("TerminateProcess") << e_text("error killing process") << e_pid(id()) << e_last_error(errcode));
 			//otherwise it was already dead
 		}
 	}
@@ -94,8 +97,8 @@ public:
 		SIZE_T size = VirtualQueryEx(handle(), addr, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION));
 		if (!size)
 		{
-			e_last_error last_error;
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("VirtualQueryEx failed") << e_pid(id()) << last_error);
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualQueryEx") << e_pid(id()) << e_last_error(errcode));
 		}
 		return mem_basic_info;
 	}
@@ -120,7 +123,10 @@ public:
 		DWORD tid;
 		handle_t thandle = CreateRemoteThread(handle(), attr, stackSize, startAddr, parameter, creationFlags, &tid);
 		if (!thandle)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not create thread in remote process") << e_pid(id()));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateRemoteThread") << e_text("could not create thread in remote process") << e_pid(id()) << e_last_error(errcode));
+		}
 		else
 			return Thread(tid, thandle);
 	}
@@ -131,7 +137,10 @@ public:
 	{
 		HANDLE hToken = nullptr;
 		if (!OpenProcessToken(handle(), desiredAccess, &hToken))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("OpenProcessToken() failed"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("OpenProcessToken") << e_last_error(errcode));
+		}
 		return WinHandle(hToken, CloseHandle);
 	}
 
@@ -139,9 +148,12 @@ public:
 	{
 		LUID luid = {0};
 		if (!LookupPrivilegeValueW(nullptr, privilegeName.c_str(), &luid))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not look up privilege value for '" + std::to_string(privilegeName)+"'"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("LookupPrivilegeValue") << e_text("could not look up privilege value for '" + to_string(privilegeName) + "'") << e_last_error(errcode));
+		}
 		if (luid.LowPart == 0 && luid.HighPart == 0)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get LUID for '" + std::to_string(privilegeName)+"'"));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("LookupPrivilegeValue") << e_text("could not get LUID for '" + to_string(privilegeName)+"'"));
 
 		// Set the privileges we need
 		TOKEN_PRIVILEGES token_privileges = {1};
@@ -151,7 +163,10 @@ public:
 		// Apply the adjusted privileges
 		WinHandle token = openToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY | TOKEN_READ);
 		if (!AdjustTokenPrivileges(token.handle(), FALSE, &token_privileges, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES)0, (PDWORD)0))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not adjust token privileges"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("AdjustTokenPrivileges") << e_text("could not adjust token privileges") << e_last_error(errcode));
+		}
 	}
 
 public:
@@ -167,7 +182,7 @@ public:
 
 	// Creates a new process and its primary thread.
 	// The new process runs in the security context of the calling process.
-	static ProcessWithThread launch(const path& app, const wstring& args = L"",
+	static ProcessWithThread launch(const fs::path& app, const wstring& args = L"",
 		optional<const vector<string>&> env = boost::none,
 		optional<const wstring&> cwd = boost::none,
 		bool inheritHandles = false, DWORD creationFlags = 0,

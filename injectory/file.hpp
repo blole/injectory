@@ -6,19 +6,19 @@
 class File : public WinHandle
 {
 private:
-	path path_;
+	fs::path path_;
 private:
-	explicit File(path path_, handle_t handle)
+	explicit File(fs::path path_, handle_t handle)
 		: WinHandle(handle, CloseHandle)
 		, path_(path_)
 	{}
 public:
 	File()
-		: File(boost::filesystem::path(), nullptr)
+		: File(fs::path(), nullptr)
 	{}
 
 public:
-	static File create(path path_,
+	static File create(fs::path path_,
 		DWORD desiredAccess = GENERIC_READ,
 		DWORD shareMode = FILE_SHARE_READ,
 		DWORD creationDisposition = OPEN_EXISTING,
@@ -30,13 +30,16 @@ public:
 			creationDisposition, flagsAndAttributes, templateFile.handle());
 
 		if (handle == INVALID_HANDLE_VALUE)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateFileW("+path_.string()+") failed"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateFile") << e_file(path_) << e_last_error(errcode));
+		}
 		else
 			return File(path_, handle);
 	}
 
 public:
-	const path& path() const
+	const fs::path& path() const
 	{
 		return path_;
 	}

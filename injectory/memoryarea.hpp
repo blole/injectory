@@ -27,7 +27,10 @@ private:
 		LPVOID area = VirtualAllocEx(proc.handle(), address, size, allocationType, protect);
 
 		if (!area)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not allocate memory in remote process"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualAllocEx") << e_text("could not allocate memory in remote process") << e_last_error(errcode));
+		}
 		else
 			return MemoryArea(proc, area, size, freeOnDestruction);
 	}
@@ -43,13 +46,19 @@ public:
 	{
 		SIZE_T writtenSize = 0;
 		if (!WriteProcessMemory(process.handle(), address(), from, writeSize, &writtenSize) || writtenSize != writeSize)
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not write to memory in remote process"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("WriteProcessMemory") << e_text("could not write to memory in remote process") << e_last_error(errcode));
+		}
 		flushInstructionCache(writeSize);
 	}
 
 	void flushInstructionCache(SIZE_T flushSize)
 	{
 		if (!FlushInstructionCache(process.handle(), address(), flushSize))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not flush instruction cache"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("FlushInstructionCache") << e_text("could not flush instruction cache") << e_last_error(errcode));
+		}
 	}
 };

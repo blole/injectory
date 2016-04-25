@@ -52,15 +52,18 @@ LPVOID GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, PBYTE imageBase
 
 void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
 {
-	path parentPath = filename().parent_path();
-	if(!SetDllDirectoryW(parentPath.wstring().c_str()))
-		BOOST_THROW_EXCEPTION (ex_fix_iat() << e_text("could not set path to target process") << e_file_path(parentPath));
+	fs::path parentPath = filename().parent_path();
+	if (!SetDllDirectoryW(parentPath.wstring().c_str()))
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_fix_iat() << e_api_function("SetDllDirectory") << e_text("could not set path to target process") << e_file(parentPath) << e_last_error(errcode));
+	}
 
 	while (LPSTR lpModuleName = (LPSTR)GetPtrFromRVA(pImgImpDesc->Name, pNtHeader, imageBase))
 	{
 		// ACHTUNG: LoadLibraryEx kann eine DLL nur anhand des Namen aus einem anderen
 		// Verzeichnis laden wie der Zielprozess!
-		Module localModule = Module::load(std::to_wstring(lpModuleName), DONT_RESOLVE_DLL_REFERENCES);
+		Module localModule = Module::load(to_wstring(lpModuleName), DONT_RESOLVE_DLL_REFERENCES);
 
 		Library lib(localModule.filename());
 		Module remoteModule = isInjected(lib);
@@ -235,10 +238,10 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 	try
 	{
-		File file = File::create(lib.path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
+		File file = File::create(lib.path(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
 
-		if(GetFileAttributesW(lib.path.c_str()) & FILE_ATTRIBUTE_COMPRESSED)
-			fileSize = GetCompressedFileSizeW(lib.path.c_str(), NULL);
+		if(GetFileAttributesW(lib.path().c_str()) & FILE_ATTRIBUTE_COMPRESSED)
+			fileSize = GetCompressedFileSizeW(lib.path().c_str(), NULL);
 		else
 			fileSize = GetFileSize(file.handle(), NULL);
 
@@ -321,7 +324,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 				L"  EntryPoint:     0x%p\n"
 				L"  SizeOfImage:      %.1f kB\n"
 				L"  CheckSum:       0x%08x\n",
-				lib.path.c_str(),
+				lib.path().c_str(),
 				id(),
 				moduleBase.address(),
 				(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
@@ -331,7 +334,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 	}
 	catch (const boost::exception& e)
 	{
-		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib) << e_pid(id());
+		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib.path()) << e_pid(id());
 		throw;
 	}
 }

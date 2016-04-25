@@ -2,7 +2,7 @@
 #include <Windows.h>
 
 #include <boost/filesystem.hpp>
-using boost::filesystem::path;
+namespace fs = boost::filesystem;
 #include <boost/optional.hpp>
 using boost::optional;
 
@@ -19,8 +19,7 @@ using std::cout;
 using std::cerr;
 using std::cin;
 using std::endl;
-using std::exception;
-
+using std::function;
 
 #if defined(_WIN64)
 	const bool is64bit = true;
@@ -32,10 +31,8 @@ using std::exception;
 
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
-#define PRINT_ERROR_MSGW(...) { wprintf(L"Error: [@%s] ", __FUNCTIONW__); PrintErrorMsgW(__VA_ARGS__); }
 
 void PrintErrorMsgA(char *format, ...);
-void PrintErrorMsgW(wchar_t *format, ...);
 
 // a process id
 typedef DWORD pid_t;
@@ -57,6 +54,9 @@ namespace std
 		return to_wstring_converter.from_bytes(s);
 	}
 }
+
+using std::to_string;
+using std::to_wstring;
 
 SYSTEM_INFO getSystemInfo();
 SYSTEM_INFO getNativeSystemInfo();

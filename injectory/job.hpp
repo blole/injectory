@@ -16,8 +16,8 @@ public:
 	{
 		if (!AssignProcessToJobObject(handle(), proc.handle()))
 		{
-			e_last_error last_error;
-			BOOST_THROW_EXCEPTION(ex_job() << e_text("could not assign process to job") << last_error);
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_job() << e_api_function("AssingProcessToJobObject") << e_text("could not assign process to job") << e_last_error(errcode));
 		}
 	}
 
@@ -26,8 +26,8 @@ public:
 	{
 		if (!SetInformationJobObject(handle(), infoClass, &info, sizeof(Info)))
 		{
-			e_last_error last_error;
-			BOOST_THROW_EXCEPTION(ex_job() << e_text("could not set job information") << last_error);
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_job() << e_api_function("SetInformationJobObject") << e_text("could not set job information") << e_last_error(errcode));
 		}
 	}
 public:
@@ -36,8 +36,8 @@ public:
 		HANDLE handle = CreateJobObjectW(nullptr, nullptr);
 		if (!handle)
 		{
-			e_last_error last_error;
-			BOOST_THROW_EXCEPTION(ex_job() << e_text("could not create job") << last_error);
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_job() << e_api_function("CreateJobObject") << e_text("could not create job") << e_last_error(errcode));
 		}
 		return Job(handle);
 	}

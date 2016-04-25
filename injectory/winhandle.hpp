@@ -20,7 +20,10 @@ public:
 	{
 		DWORD ret = WaitForSingleObject(handle(), millis);
 		if (ret == WAIT_FAILED)
-			BOOST_THROW_EXCEPTION(ex_wait_for_single_object());
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_wait_for_single_object() << e_api_function("WaitForSingleObject") << e_last_error(errcode));
+		}
 		else
 			return ret;
 	}
@@ -29,7 +32,10 @@ public:
 	{
 		DWORD ret = WaitForMultipleObjects(handles.size(), &handles[0], waitAll, millis);
 		if (ret == WAIT_FAILED)
-			BOOST_THROW_EXCEPTION(ex_wait_for_multiple_objects());
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_wait_for_multiple_objects() << e_api_function("WaitForMultipleObjects") << e_last_error(errcode));
+		}
 		else
 			return ret;
 	}

@@ -7,29 +7,34 @@
 
 class Library
 {
-public:
-	const path path;
+private:
+	const fs::path path_;
 
 public:
-	Library(const boost::filesystem::path& path_)
-		: path(path_)
+	Library(const fs::path& path_)
+		: path_(path_)
 	{
-		if (!boost::filesystem::is_regular_file(path))
-			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(*this));
+		if (!fs::is_regular_file(path_))
+			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(path_));
 	}
 
 	Library(const char* path_)
-		: Library(boost::filesystem::path(path_))
+		: Library(fs::path(path_))
 	{}
 
 	Library(const wstring& path_)
-		: Library(boost::filesystem::path(path_))
+		: Library(fs::path(path_))
 	{}
 
 public:
+	const fs::path& path() const
+	{
+		return path_;
+	}
+
 	File file() const
 	{
-		return File::create(path);
+		return File::create(path_);
 	}
 
 	wstring ntFilename() const

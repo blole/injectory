@@ -24,17 +24,23 @@ public:
 
 	void suspend(bool _suspend = true) const
 	{
-		DWORD res;
-		if (_suspend)
-			res = SuspendThread(handle());
-		else
-			res = ResumeThread(handle());
-		if (res == (DWORD)-1)
-			BOOST_THROW_EXCEPTION(ex_suspend_resume_thread());
+		if (!_suspend)
+			resume();
+		else if (SuspendThread(handle()) == -1)
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_suspend_resume_thread() << e_api_function("SuspendThread") << e_last_error(errcode));
+		}
 	}
 	void resume(bool _resume = true) const
 	{
-		suspend(!_resume);
+		if (!_resume)
+			suspend();
+		else if (ResumeThread(handle()) == -1)
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_suspend_resume_thread() << e_api_function("ResumeThread") << e_last_error(errcode));
+		}
 	}
 
 	void hideFromDebugger() const;

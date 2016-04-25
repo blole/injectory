@@ -2,12 +2,7 @@
 #include "injectory/library.hpp"
 #include <boost/algorithm/string/trim.hpp>
 
-e_library::e_library(const Library& lib)
-	: error_info(lib.path)
-{
-}
-
-string e_last_error::getLastErrorString(DWORD hresult)
+string GetLastErrorString(DWORD errcode)
 {
 	LPVOID lpMsgBuf = nullptr;
 	FormatMessageA(
@@ -19,7 +14,7 @@ string e_last_error::getLastErrorString(DWORD hresult)
 		// (and CANNOT) pass insertion parameters
 		| FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr,    // unused with FORMAT_MESSAGE_FROM_SYSTEM
-		hresult,
+		errcode,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPSTR)&lpMsgBuf,  // output 
 		0, // minimum size for output buffer
@@ -33,5 +28,5 @@ string e_last_error::getLastErrorString(DWORD hresult)
 		return errorString;
 	}
 	else
-		return "GetLastError()=" + std::to_string(hresult) + " but no info from FormatMessage()";
+		return "GetLastError()=" + to_string(errcode) + " but no info from FormatMessage()";
 }

@@ -12,12 +12,15 @@ Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 {
 	Process proc(pid, OpenProcess(desiredAccess, inheritHandle, pid));
 	if (!proc.handle())
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to process") << e_pid(pid));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("OpenProcess") << e_text("could not get handle to process") << e_pid(pid) << e_last_error(errcode));
+	}
 	else
 		return proc;
 }
 
-ProcessWithThread Process::launch(const path& app, const wstring& args,
+ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 	optional<const vector<string>&> env,
 	optional<const wstring&> cwd,
 	bool inheritHandles, DWORD creationFlags,
@@ -30,7 +33,10 @@ ProcessWithThread Process::launch(const path& app, const wstring& args,
 
 	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles,
 			creationFlags, nullptr, nullptr, &startupInfo, &pi))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateProcess failed"));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateProcess") << e_last_error(errcode));
+	}
 	else
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
 }
@@ -41,7 +47,7 @@ void Process::suspend(bool _suspend) const
 	auto func = Module::ntdll().getProcAddress<LONG, HANDLE>(funcName);
 	LONG ntStatus = func(handle());
 	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_nt_status(ntStatus));
+		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_api_function(funcName.c_str()) << e_text("error calling remote function") << e_nt_status(ntStatus));
 }
 
 void Process::suspendAllThreads(bool _suspend) const
@@ -92,12 +98,12 @@ MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationT
 Module Process::inject(const Library& lib, const bool& verbose)
 {
 	if (isInjected(lib))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib) << e_pid(id()));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib.path()) << e_pid(id()));
 
 	// copy the pathname to the remote process
-	SIZE_T libPathLen = (lib.path.wstring().size() + 1) * sizeof(wchar_t);
+	SIZE_T libPathLen = (lib.path().wstring().size() + 1) * sizeof(wchar_t);
 	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
-	libFileRemote.write((LPCVOID)(lib.path.c_str()), libPathLen);
+	libFileRemote.write((LPCVOID)(lib.path().c_str()), libPathLen);
 
 	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
@@ -110,12 +116,18 @@ Module Process::inject(const Library& lib, const bool& verbose)
 
 		if (!ReadProcessMemory(handle(), module.handle(), &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_DOS_HEADER))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory in remote process") << e_last_error(errcode));
+		}
 
 		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
 		if (!ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
 			NumBytesRead != sizeof(IMAGE_NT_HEADERS))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not read memory in remote process"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory in remote process") << e_last_error(errcode));
+		}
 
 		if (verbose)
 		{
@@ -164,7 +176,10 @@ bool Process::is64bit() const
 
 		auto isWow64Process = Module::kernel32().getProcAddress<BOOL, HANDLE, PBOOL>("IsWow64Process");
 		if (!isWow64Process(handle(), &isWow64))
-			BOOST_THROW_EXCEPTION(ex_injection() << e_text("IsWow64Process failed"));
+		{
+			DWORD errcode = GetLastError();
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("IsWow64Process") << e_last_error(errcode));
+		}
 
 		return !isWow64;
 	}
@@ -222,7 +237,7 @@ Module Process::getInjected(const Library& lib)
 	if (Module module = isInjected(lib))
 		return module;
 	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find injected library") << e_pid(id()) << e_library(lib));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find injected library") << e_pid(id()) << e_library(lib.path()));
 }
 Module Process::getInjected(HMODULE hmodule)
 {
@@ -236,11 +251,17 @@ Module Process::map(const File& file)
 {
 	WinHandle fileMap(CreateFileMappingW(file.handle(), nullptr, PAGE_READONLY, 0, 1, nullptr), CloseHandle);
 	if (!fileMap)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("CreateFileMappingW(" + file.path().string() + ") failed"));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateFileMapping") << e_file(file.path()) << e_last_error(errcode));
+	}
 
 	Module module((HMODULE)MapViewOfFile(fileMap.handle(), FILE_MAP_READ, 0, 0, 1), Process::current, UnmapViewOfFile);
 	if (!module)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("MapViewOfFile() failed"));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("MapViewOfFile") << e_file(file.path()) << e_last_error(errcode));
+	}
 	return module;
 }
 

@@ -29,7 +29,10 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 {
 	Thread thread(tid, OpenThread(desiredAccess, inheritHandle, tid));
 	if (!thread.handle())
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get handle to thread") << e_tid(tid));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("OpenThread") << e_text("could not get handle to thread") << e_tid(tid) << e_last_error(errcode));
+	}
 	else
 		return thread;
 }
@@ -41,13 +44,16 @@ void Thread::hideFromDebugger() const
 
 	LONG ntStatus = ntSetInformationThread(handle(), ThreadHideFromDebugger, nullptr, 0);
 	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_hide() << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id()));
+		BOOST_THROW_EXCEPTION(ex_hide() << e_api_function("NtSetInformationThread") << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id()));
 }
 
 void Thread::setPriority(int priority)
 {
 	if (!SetThreadPriority(handle(), priority))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not set thread priority"));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("SetThreadPriority") << e_text("could not set thread priority") << e_last_error(errcode));
+	}
 }
 
 DWORD Thread::waitForTermination()
@@ -55,7 +61,10 @@ DWORD Thread::waitForTermination()
 	wait();
 	DWORD exitCode;
 	if (!GetExitCodeThread(handle(), &exitCode))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get thread exit code"));
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetExitCodeThread") << e_text("could not get thread exit code") << e_last_error(errcode));
+	}
 	else
 		return exitCode;
 }

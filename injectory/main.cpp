@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		else if (vars.count("launch"))
 		{
 			using boost::none;
-			path    app  = vars["launch"].as<wstring>();
+			fs::path app = vars["launch"].as<wstring>();
 			wstring args = vars["args"].as<wstring>();
 			
 			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
 		if (vars.count("rethrow")) throw; else return 1;
 	}
-	catch (const exception& e)
+	catch (const std::exception& e)
 	{
 		const boost::exception* be = boost::exception_detail::get_boost_exception(&e);
 		if (be && !algo::starts_with(boost::diagnostic_information_what(*be), "Throw location unknown"))
