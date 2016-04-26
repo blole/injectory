@@ -6,6 +6,9 @@
 
 #include <stdio.h>
 #include <Psapi.h>
+#include <boost/filesystem.hpp>
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
 
 
 // Matt Pietrek's function
@@ -202,91 +205,71 @@ void Process::callTlsInitializers(
 
 void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 {
-	DWORD fileSize = 0;
-	PIMAGE_NT_HEADERS nt_header = 0;
-	PIMAGE_DOS_HEADER dos_header = 0;
-
-	PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc = 0;
 	PIMAGE_BASE_RELOCATION pImgBaseReloc = 0;
 	PIMAGE_TLS_DIRECTORY pImgTlsDir = 0;
 
 	try
 	{
+		namespace ip = boost::interprocess;
+
 		File file = File::create(lib.path(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
 
-		if(GetFileAttributesW(lib.path().c_str()) & FILE_ATTRIBUTE_COMPRESSED)
-			fileSize = GetCompressedFileSizeW(lib.path().c_str(), NULL);
-		else
-			fileSize = GetFileSize(file.handle(), NULL);
+		ip::file_mapping m_file(lib.path().string().c_str(), ip::read_only);
+		ip::mapped_region region(m_file, ip::read_only);
 
-		if(fileSize == INVALID_FILE_SIZE)
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("could not get size of file"));
-
-		shared_ptr<BYTE> dllBin((BYTE*)malloc(fileSize), free);
-
-		{
-			DWORD NumBytesRead = 0;
-			if(!ReadFile(file.handle(), dllBin.get(), fileSize, &NumBytesRead, nullptr))
-				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("ReadFile failed"));
-		}
+		const IMAGE_DOS_HEADER& dos_header = *(IMAGE_DOS_HEADER*)region.get_address();
 		
-		dos_header = (PIMAGE_DOS_HEADER)dllBin.get();
-		
-		// Make sure we got a valid DOS header
-		if(dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+		if(dos_header.e_magic != IMAGE_DOS_SIGNATURE)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("invalid DOS header"));
 		
-		// Get the real PE header from the DOS stub header
-		nt_header = (PIMAGE_NT_HEADERS)( (DWORD_PTR)dllBin.get() +
-			dos_header->e_lfanew);
+		IMAGE_NT_HEADERS& nt_header = *(IMAGE_NT_HEADERS*)((DWORD_PTR) region.get_address()+dos_header.e_lfanew);
 
-		// Verify the PE header
-		if(nt_header->Signature != IMAGE_NT_SIGNATURE)
+		if(nt_header.Signature != IMAGE_NT_SIGNATURE)
 			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("invalid PE header"));
 
 		// Allocate space for the module in the remote process
-		MemoryArea moduleBase = alloc(nt_header->OptionalHeader.SizeOfImage, false);
+		MemoryArea moduleBase = alloc(nt_header.OptionalHeader.SizeOfImage, false);
 		
 		// fix imports
-		pImgImpDesc = (PIMAGE_IMPORT_DESCRIPTOR)GetPtrFromRVA(
-			nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
-			nt_header,
-			(PBYTE)dllBin.get());
-		if (nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
-			fixIAT((PBYTE)dllBin.get(), nt_header, pImgImpDesc);
+		IMAGE_IMPORT_DESCRIPTOR* pImgImpDesc = (IMAGE_IMPORT_DESCRIPTOR*)GetPtrFromRVA(
+			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
+			&nt_header,
+			(PBYTE)region.get_address());
+		if (nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
+			fixIAT((PBYTE)region.get_address(), &nt_header, pImgImpDesc);
 		
 		// fix relocs
 		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(
-			(DWORD)(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress),
-			nt_header,
-			(PBYTE)dllBin.get());
-		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
+			(DWORD)(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress),
+			&nt_header,
+			(BYTE*)region.get_address());
+		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
 		{
-			if(!FixRelocations(dllBin.get(), moduleBase.address(), nt_header, pImgBaseReloc))
+			if(!FixRelocations((BYTE*)region.get_address(), moduleBase.address(), &nt_header, pImgBaseReloc))
 				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error fixing relocations"));
 		}
 
 		// Write the PE header into the remote process's memory space
-		moduleBase.write(dllBin.get(), nt_header->FileHeader.SizeOfOptionalHeader +
-			sizeof(nt_header->FileHeader) +
-			sizeof(nt_header->Signature));
+		moduleBase.write(region.get_address(), nt_header.FileHeader.SizeOfOptionalHeader +
+			sizeof(nt_header.FileHeader) +
+			sizeof(nt_header.Signature));
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)
-		mapSections(moduleBase.address(), dllBin.get(), nt_header);
+		mapSections(moduleBase.address(), (byte*)region.get_address(), &nt_header);
 
 		// call all tls callbacks
 		//
 		pImgTlsDir = (PIMAGE_TLS_DIRECTORY)GetPtrFromRVA(
-			nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress,
-			nt_header,
-			(PBYTE)dllBin.get());
-		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
+			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress,
+			&nt_header,
+			(BYTE*)region.get_address());
+		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
 			callTlsInitializers((HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
 
 		// call entry point
 		remoteDllMainCall(
-			(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
+			(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header.OptionalHeader.AddressOfEntryPoint),
 			(HMODULE)moduleBase.address(), 1, nullptr);
 
 		if (verbose)
@@ -300,9 +283,9 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 				lib.path().c_str(),
 				id(),
 				moduleBase.address(),
-				(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header->OptionalHeader.AddressOfEntryPoint),
-				nt_header->OptionalHeader.SizeOfImage / 1024.0,
-				nt_header->OptionalHeader.CheckSum);
+				(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header.OptionalHeader.AddressOfEntryPoint),
+				nt_header.OptionalHeader.SizeOfImage / 1024.0,
+				nt_header.OptionalHeader.CheckSum);
 		}
 	}
 	catch (const boost::exception& e)
