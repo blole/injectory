@@ -1,5 +1,4 @@
 #include "injectory/common.hpp"
-#include "injectory/module.hpp"
 
 void PrintErrorMsgA(char *format, ...)
 {
@@ -18,25 +17,4 @@ void PrintErrorMsgA(char *format, ...)
 	}
 	SetLastError(0);
 	printf("\n");
-}
-
-SYSTEM_INFO getSystemInfo()
-{
-	SYSTEM_INFO sys_info = { 0 };
-	GetSystemInfo(&sys_info);
-	return sys_info;
-}
-
-SYSTEM_INFO getNativeSystemInfo()
-{
-	SYSTEM_INFO systemInfo = { 0 };
-
-	auto getNativeSystemInfo_ = Module::kernel32().getProcAddress<void, LPSYSTEM_INFO>("GetNativeSystemInfo");
-
-	if (getNativeSystemInfo_)
-		getNativeSystemInfo_(&systemInfo);
-	else
-		GetSystemInfo(&systemInfo);
-
-	return systemInfo;
 }

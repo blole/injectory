@@ -8,6 +8,8 @@
 
 class Library;
 class File;
+template<typename>
+class MemoryAreaT;
 class MemoryArea;
 struct ProcessWithThread;
 class Module;
@@ -78,20 +80,39 @@ public:
 
 	vector<Thread> threads(bool inheritHandle = false, DWORD desiredAccess = THREAD_SET_INFORMATION) const;
 
+
+public: // memory
+	template <typename T>
+	MemoryAreaT<T> alloc(bool freeOnDestruction = true,
+		DWORD allocationType = MEM_COMMIT | MEM_RESERVE,
+		DWORD protect = PAGE_EXECUTE_READWRITE,
+		void* addressHint = nullptr)
+	{
+		return MemoryAreaT<T>::alloc(*this, freeOnDestruction, allocationType, protect, addressHint);
+	}
 	MemoryArea alloc(SIZE_T size,
 		bool freeOnDestruction = true,
 		DWORD allocationType = MEM_COMMIT | MEM_RESERVE,
 		DWORD protect = PAGE_EXECUTE_READWRITE,
-		LPVOID address = nullptr);
+		void* addressHint = nullptr);
 
+	template <typename T>
+	MemoryAreaT<T> memory(void* address)
+	{
+		return MemoryAreaT<T>(*this, address, false);
+	}
+	MemoryArea memory(void* address, SIZE_T size);
+
+
+public:
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
 
-	void callTlsInitializers(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
+	void callTlsInitializers(HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
 	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
 
 	bool is64bit() const;
-	MEMORY_BASIC_INFORMATION memBasicInfo(LPCVOID addr)
+	MEMORY_BASIC_INFORMATION memBasicInfo(const void* addr)
 	{
 		MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 		SIZE_T size = VirtualQueryEx(handle(), addr, &mem_basic_info, sizeof(MEMORY_BASIC_INFORMATION));
@@ -131,7 +152,8 @@ public:
 			return Thread(tid, thandle);
 	}
 
-	void remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+	void remoteDllMainCall(void* moduleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+	void mapSections(void* moduleBase, byte* dllBin, PIMAGE_NT_HEADERS nt_header);
 
 	WinHandle openToken(DWORD desiredAccess)
 	{

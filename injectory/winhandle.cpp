@@ -1,15 +1,5 @@
 #include "injectory/winhandle.hpp"
-
-HANDLE GetStdHandle_Throwing(DWORD nStdHandle)
-{
-	HANDLE h = GetStdHandle(nStdHandle);
-	if (h == INVALID_HANDLE_VALUE)
-	{
-		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetStdHandle") << e_text("error getting handle") << e_last_error(errcode));
-	}
-	return h;
-}
+#include "injectory/api.hpp"
 
 const WinHandle& WinHandle::std_in()
 {

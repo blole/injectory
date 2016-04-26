@@ -149,6 +149,7 @@
     <ClCompile Include="thread.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="api.hpp" />
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="file.hpp" />
     <ClInclude Include="findproc.hpp" />

@@ -90,9 +90,14 @@ vector<Thread> Process::threads(bool inheritHandle, DWORD desiredAccess) const
 	return threads_;
 }
 
-MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationType, DWORD protect, LPVOID address)
+MemoryArea Process::memory(void* address, SIZE_T size)
 {
-	return MemoryArea::alloc(*this, size, freeOnDestruction, allocationType, protect, address);
+	return MemoryArea(*this, address, size, false);
+}
+
+MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationType, DWORD protect, void* addressHint)
+{
+	return MemoryArea::alloc(*this, size, freeOnDestruction, allocationType, protect, addressHint);
 }
 
 Module Process::inject(const Library& lib, const bool& verbose)
@@ -103,31 +108,16 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	// copy the pathname to the remote process
 	SIZE_T libPathLen = (lib.path().wstring().size() + 1) * sizeof(wchar_t);
 	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
-	libFileRemote.write((LPCVOID)(lib.path().c_str()), libPathLen);
+	libFileRemote.write((void*)(lib.path().c_str()));
 
 	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 
 	if (Module module = isInjected(lib))
 	{
-		IMAGE_NT_HEADERS nt_header = { 0 };
-		IMAGE_DOS_HEADER dos_header = { 0 };
-		SIZE_T NumBytesRead = 0;
-
-		if (!ReadProcessMemory(handle(), module.handle(), &dos_header, sizeof(IMAGE_DOS_HEADER), &NumBytesRead) ||
-			NumBytesRead != sizeof(IMAGE_DOS_HEADER))
-		{
-			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory in remote process") << e_last_error(errcode));
-		}
-
-		LPVOID lpNtHeaderAddress = (LPVOID)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
-		if (!ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header, sizeof(IMAGE_NT_HEADERS), &NumBytesRead) ||
-			NumBytesRead != sizeof(IMAGE_NT_HEADERS))
-		{
-			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory in remote process") << e_last_error(errcode));
-		}
+		IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(module.handle()).read();
+		void* nt_header_address = (void*)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
+		IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address).read();
 
 		if (verbose)
 		{
@@ -196,7 +186,7 @@ Module Process::isInjected(const Library& lib)
 
 	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
 	{
-		mem_basic_info = memBasicInfo((LPCVOID)mem);
+		mem_basic_info = memBasicInfo((const void*)mem);
 
 		if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
 			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
@@ -218,7 +208,7 @@ Module Process::isInjected(HMODULE hmodule)
 
 	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
 	{
-		mem_basic_info = memBasicInfo((LPCVOID)mem);
+		mem_basic_info = memBasicInfo((const void*)mem);
 
 		if ((mem_basic_info.AllocationProtect & PAGE_EXECUTE_WRITECOPY) &&
 			(mem_basic_info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ |
@@ -270,12 +260,12 @@ void Process::listModules()
 	MEMORY_BASIC_INFORMATION mem_basic_info = { 0 };
 	SYSTEM_INFO sys_info = getSystemInfo();
 
-	printf("BASE\t\t SIZE\t\t  MODULE\n\n");
+	cout << "BASE\t\t SIZE\t\t  MODULE" << endl;
 
 	for (SIZE_T mem = 0; mem < (SIZE_T)sys_info.lpMaximumApplicationAddress; mem += mem_basic_info.RegionSize)
 	{
-		PVOID ab = mem_basic_info.AllocationBase;
-		mem_basic_info = memBasicInfo((LPCVOID)mem);
+		void* ab = mem_basic_info.AllocationBase;
+		mem_basic_info = memBasicInfo((void*)mem);
 		if (ab == mem_basic_info.AllocationBase)
 			continue;
 
@@ -283,36 +273,10 @@ void Process::listModules()
 
 		if (!ntMappedFileName.empty())
 		{
-			IMAGE_NT_HEADERS nt_header = { 0 };
-			IMAGE_DOS_HEADER dos_header = { 0 };
-			SIZE_T NumBytesRead = 0;
-			LPVOID lpNtHeaderAddress = 0;
-			//WCHAR *pModuleName = (WCHAR)0;
-
-			//pModuleName = wcsrchr(ntMappedFileName, '\\');
-			//if(!pModuleName)
-			//{
-			//	return;
-			//}
-			//++pModuleName;
-
-			if (ReadProcessMemory(handle(), mem_basic_info.AllocationBase, &dos_header,
-				sizeof(IMAGE_DOS_HEADER), &NumBytesRead) &&
-				NumBytesRead == sizeof(IMAGE_DOS_HEADER))
-			{
-				lpNtHeaderAddress = (LPVOID)((DWORD_PTR)mem_basic_info.AllocationBase +
-					dos_header.e_lfanew);
-
-				if (ReadProcessMemory(handle(), lpNtHeaderAddress, &nt_header,
-					sizeof(IMAGE_NT_HEADERS), &NumBytesRead) &&
-					NumBytesRead == sizeof(IMAGE_NT_HEADERS))
-				{
-					wprintf(L"0x%p, %.1f kB, %s\n",
-						mem_basic_info.AllocationBase,
-						nt_header.OptionalHeader.SizeOfImage / 1024.0,
-						ntMappedFileName.c_str());
-				}
-			}
+			IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(mem_basic_info.AllocationBase).read();
+			void* nt_header_address = (void*)((DWORD_PTR)mem_basic_info.AllocationBase + dos_header.e_lfanew);
+			IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address).read();
+			cout << format("0x%p, %.1f kB, ") % mem_basic_info.AllocationBase % (nt_header.OptionalHeader.SizeOfImage / 1024.0) << to_string(ntMappedFileName) << endl;
 		}
 	}
 }

@@ -24,11 +24,11 @@ void Process::remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_
 	DLLMAINCALL dllMainCall = { (DLLMAIN)lpModuleEntry, hModule, ul_reason_for_call, lpReserved };
 	SIZE_T DllMainWrapperSize = (SIZE_T)DllMainWrapper_end - (SIZE_T)DllMainWrapper; 
 
-	MemoryArea param          = alloc(sizeof(DLLMAINCALL));
-	MemoryArea dllCallWrapper = alloc((SIZE_T)((DWORD_PTR)DllMainWrapper_end - (DWORD_PTR)DllMainWrapper));
+	MemoryAreaT<DLLMAINCALL> param = alloc<DLLMAINCALL>();
+	MemoryArea dllCallWrapper = alloc(DllMainWrapperSize);
 
-	param.write((LPCVOID)&dllMainCall, sizeof(DLLMAINCALL));
-	dllCallWrapper.write((LPCVOID)DllMainWrapper, DllMainWrapperSize);
+	param.write(&dllMainCall);
+	dllCallWrapper.write(DllMainWrapper);
 
 	runInHiddenThread((LPTHREAD_START_ROUTINE)dllCallWrapper.address(), param.address());
 }

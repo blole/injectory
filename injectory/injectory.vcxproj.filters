@@ -79,6 +79,9 @@
     <ClInclude Include="job.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="api.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

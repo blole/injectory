@@ -85,41 +85,24 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 	}
 }
 
-BOOL
-MapSections(
-	HANDLE hProcess,
-	LPVOID lpModuleBase,
-	PBYTE dllBin,
-	PIMAGE_NT_HEADERS pNTHeader
-	)
+void Process::mapSections(void* lpModuleBase, byte* dllBin, PIMAGE_NT_HEADERS nt_header)
 {
-	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(pNTHeader);
-	SIZE_T virtualSize = 0;
-	WORD nSection = 0;
-	
-	for(nSection = 0; nSection < pNTHeader->FileHeader.NumberOfSections; nSection++)
-	{
-		LPVOID lpBaseAddress = (LPVOID)( (DWORD_PTR)lpModuleBase + section->VirtualAddress );
-		LPCVOID lpBuffer = (LPCVOID)( (DWORD_PTR)dllBin + section->PointerToRawData );
-		SIZE_T NumBytesWritten = 0;
-		//PDWORD lpflOldProtect = 0;
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(nt_header);
 
-		if(!WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, section->SizeOfRawData, &NumBytesWritten) ||
-			NumBytesWritten != section->SizeOfRawData)
-		{
-			PRINT_ERROR_MSGA("Could not write to memory in remote process.");
-			return FALSE;
-		}	
-		
-		// next section header, calculate virtualSize of section header
-		virtualSize = section->VirtualAddress;
-		//printf("section: %s | %p | %x\n", section->Name, section->VirtualAddress, virtualSize);
-		section++;
-		if(section->VirtualAddress)
-		{
-			virtualSize = section->VirtualAddress - virtualSize;
-		}
+	for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++, section++)
+	{
+		void* dst = (void*)( (DWORD_PTR)lpModuleBase + section->VirtualAddress );
+		const void* src = (const void*)( (DWORD_PTR)dllBin + section->PointerToRawData );
+
+		memory(dst, section->SizeOfRawData).write(src);
+
 		/*
+		// next section header, calculate virtualSize of section header
+		SIZE_T virtualSize = section->VirtualAddress;
+		//printf("section: %s | %p | %x\n", section->Name, section->VirtualAddress, virtualSize);
+		if (section->VirtualAddress)
+			virtualSize = section->VirtualAddress - virtualSize;
+		PDWORD lpflOldProtect = 0;
 		if(!VirtualProtectEx(hProcess, (LPVOID)( (DWORD_PTR)lpModuleBase + section->VirtualAddress ), virtualSize,
 			section->Characteristics & 0x00FFFFFF, lpflOldProtect))
 		{
@@ -128,8 +111,6 @@ MapSections(
 		}
 		*/
 	}
-
-	return TRUE;
 }
 
 BOOL
@@ -198,8 +179,6 @@ FixRelocations(
 }
 
 void Process::callTlsInitializers(
-	PBYTE /*imageBase*/,
-	PIMAGE_NT_HEADERS /*pNtHeader*/,
 	HMODULE hModule,
 	DWORD fdwReason,
 	PIMAGE_TLS_DIRECTORY pImgTlsDir)
@@ -210,12 +189,7 @@ void Process::callTlsInitializers(
 	{
 		for (;;)
 		{
-			SIZE_T NumBytesRead = 0;
-			LPVOID callback = 0;
-
-			if (!ReadProcessMemory(handle(), (PVOID)pCallbacks, &callback, sizeof(LPVOID), &NumBytesRead) ||
-					NumBytesRead != sizeof(LPVOID))
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("Could not read memory in remote process."));
+			void* callback = memory<void*>((void*)pCallbacks).read();
 
 			if (!callback)
 				break;
@@ -299,8 +273,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)
-		if(!MapSections(handle(), moduleBase.address(), dllBin.get(), nt_header))
-			BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error mapping sections"));
+		mapSections(moduleBase.address(), dllBin.get(), nt_header);
 
 		// call all tls callbacks
 		//
@@ -309,7 +282,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 			nt_header,
 			(PBYTE)dllBin.get());
 		if(nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
-			callTlsInitializers(dllBin.get(), nt_header, (HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
+			callTlsInitializers((HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
 
 		// call entry point
 		remoteDllMainCall(

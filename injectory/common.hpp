@@ -5,6 +5,8 @@
 namespace fs = boost::filesystem;
 #include <boost/optional.hpp>
 using boost::optional;
+#include <boost/format.hpp>
+using boost::format;
 
 #include <locale>
 #include <codecvt>
@@ -54,10 +56,6 @@ namespace std
 		return to_wstring_converter.from_bytes(s);
 	}
 }
-
 using std::to_string;
 using std::to_wstring;
 
-SYSTEM_INFO getSystemInfo();
-SYSTEM_INFO getNativeSystemInfo();
-  
