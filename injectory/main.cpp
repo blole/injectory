@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 		if (proc)
 		{
 			if (proc.is64bit() != is64bit)
-				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_pid(proc.id()));
+				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_proc(proc));
 
 			Job job;
 			if (vars.count("kill-on-exit"))

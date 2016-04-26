@@ -64,7 +64,7 @@ public:
 		if (process != Process::current)
 		{
 			// load module locally without running it and calculate offset
-			Module localModule = load(filename(), DONT_RESOLVE_DLL_REFERENCES);
+			Module localModule = load(path(), DONT_RESOLVE_DLL_REFERENCES);
 			LONG_PTR funcOffset = (DWORD_PTR)localModule.getProcAddress(procName) - (DWORD_PTR)localModule.handle();
 			return (FARPROC)((DWORD_PTR)handle() + funcOffset);
 		}
@@ -86,7 +86,7 @@ public:
 		return function<R(A...)>(reinterpret_cast<R (WINAPI *)(A...)>(getProcAddress(procName)));
 	}
 
-	wstring filename() const;
+	wstring path() const;
 	wstring mappedFilename(bool throwOnFail = true) const;
 	void eject();
 public:

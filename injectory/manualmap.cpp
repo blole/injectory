@@ -52,7 +52,7 @@ LPVOID GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, PBYTE imageBase
 
 void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
 {
-	fs::path parentPath = filename().parent_path();
+	fs::path parentPath = path().parent_path();
 	if (!SetDllDirectoryW(parentPath.wstring().c_str()))
 	{
 		DWORD errcode = GetLastError();
@@ -65,7 +65,7 @@ void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT
 		// Verzeichnis laden wie der Zielprozess!
 		Module localModule = Module::load(to_wstring(lpModuleName), DONT_RESOLVE_DLL_REFERENCES);
 
-		Library lib(localModule.filename());
+		Library lib(localModule.path());
 		Module remoteModule = isInjected(lib);
 		if (!remoteModule)
 			remoteModule = inject(lib);
@@ -307,7 +307,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 	}
 	catch (const boost::exception& e)
 	{
-		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib.path()) << e_pid(id());
+		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib.path()) << e_proc(*this);
 		throw;
 	}
 }

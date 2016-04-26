@@ -32,13 +32,13 @@ public:
 		return id_;
 	}
 
-	fs::path filename() const
+	fs::path path() const
 	{
 		WCHAR buffer[MAX_PATH + 1] = { 0 };
 		if (!GetModuleFileNameExW(handle(), (HMODULE)0, buffer, MAX_PATH))
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_text("could not get path to process") << e_pid(id()) << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_text("could not get path to process") << e_proc(*this) << e_last_error(errcode));
 		}
 		return buffer;
 	}
@@ -60,7 +60,7 @@ public:
 		{
 			DWORD errcode = GetLastError();
 			if (isRunning())
-				BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("TerminateProcess") << e_text("error killing process") << e_pid(id()) << e_last_error(errcode));
+				BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("TerminateProcess") << e_text("error killing process") << e_proc(*this) << e_last_error(errcode));
 			//otherwise it was already dead
 		}
 	}
@@ -119,7 +119,7 @@ public:
 		if (!size)
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualQueryEx") << e_pid(id()) << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualQueryEx") << e_proc(*this) << e_last_error(errcode));
 		}
 		return mem_basic_info;
 	}
@@ -146,13 +146,13 @@ public:
 		if (!thandle)
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateRemoteThread") << e_text("could not create thread in remote process") << e_pid(id()) << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateRemoteThread") << e_text("could not create thread in remote process") << e_proc(*this) << e_last_error(errcode));
 		}
 		else
 			return Thread(tid, thandle);
 	}
 
-	void remoteDllMainCall(void* moduleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
+	void remoteDllMainCall(void* moduleEntry, HMODULE hModule, DWORD ul_reason_for_call, void* lpReserved);
 	void mapSections(void* moduleBase, byte* dllBin, PIMAGE_NT_HEADERS nt_header);
 
 	WinHandle openToken(DWORD desiredAccess)

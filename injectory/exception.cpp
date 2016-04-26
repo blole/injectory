@@ -1,4 +1,5 @@
 #include "injectory/exception.hpp"
+#include "injectory/process.hpp"
 #include "injectory/library.hpp"
 #include <boost/algorithm/string/trim.hpp>
 
@@ -29,4 +30,24 @@ string GetLastErrorString(DWORD errcode)
 	}
 	else
 		return "GetLastError()=" + to_string(errcode) + " but no info from FormatMessage()";
+}
+
+
+
+
+namespace boost
+{
+	inline string to_string(const e_last_error& x)
+	{
+		return '[' + boost::error_info_name(x) + "] = " + to_string_stub(x.value()) + ", " + to_string_stub(GetLastErrorString(x.value())) + '\n';
+	}
+	inline string to_string(const e_proc& x)
+	{
+		const Process& proc = x.value();
+		string name;
+		try { name = proc.path().filename().string(); }
+		catch (...) { name = "error getting process name"; }
+
+		return '[' + boost::error_info_name(x) + "] = " + (format("(%5d) %s\n") % proc.id() % name).str();
+	}
 }

@@ -22,7 +22,7 @@ public:
 		if (ret == WAIT_FAILED)
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_wait_for_single_object() << e_api_function("WaitForSingleObject") << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_wait_for_single_object() << e_api_function("WaitForSingleObject") << e_last_error(errcode) << e_handle(handle()));
 		}
 		else
 			return ret;
@@ -34,7 +34,7 @@ public:
 		if (ret == WAIT_FAILED)
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_wait_for_multiple_objects() << e_api_function("WaitForMultipleObjects") << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_wait_for_multiple_objects() << e_api_function("WaitForMultipleObjects") << e_last_error(errcode) << e_handles(handles));
 		}
 		else
 			return ret;

@@ -55,6 +55,18 @@ namespace std
 		static std::wstring_convert<std::codecvt_utf8<wchar_t>> to_wstring_converter;
 		return to_wstring_converter.from_bytes(s);
 	}
+	template <typename T>
+	inline string to_string(const vector<T>& v)
+	{
+		std::stringstream ss;
+		ss << "[";
+		if (v.size() != 0)
+			ss << v[0];
+		for (unsigned int i = 1; i < v.size(); ++i)
+			ss << "," << v[i];
+		ss << "]";
+		return ss.str();
+	}
 }
 using std::to_string;
 using std::to_wstring;

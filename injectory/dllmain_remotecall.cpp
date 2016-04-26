@@ -19,7 +19,7 @@ void DllMainWrapper_end(void)
 {
 }
 
-void Process::remoteDllMainCall(LPVOID lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+void Process::remoteDllMainCall(void* lpModuleEntry, HMODULE hModule, DWORD ul_reason_for_call, void* lpReserved)
 {
 	DLLMAINCALL dllMainCall = { (DLLMAIN)lpModuleEntry, hModule, ul_reason_for_call, lpReserved };
 	SIZE_T DllMainWrapperSize = (SIZE_T)DllMainWrapper_end - (SIZE_T)DllMainWrapper; 
