@@ -189,7 +189,7 @@ void Process::callTlsInitializers(
 	{
 		for (;;)
 		{
-			void* callback = memory<void*>((void*)pCallbacks).read();
+			void* callback = memory<void*>((void*)pCallbacks);
 
 			if (!callback)
 				break;

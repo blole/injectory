@@ -111,9 +111,20 @@ public:
 
 	T read() const
 	{
-		T t;
-		ReadProcessMemory_Throwing(process, address(), &t, sizeof(T));
-		return t;
+		T dst;
+		ReadProcessMemory_Throwing(process, address(), &dst, sizeof(T));
+		return dst;
+	}
+
+	operator T() const
+	{
+		return read();
+	}
+
+	MemoryAreaT<T>& operator=(const T& src)
+	{
+		write(&src);
+		return *this;
 	}
 };
 

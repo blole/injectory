@@ -115,9 +115,9 @@ Module Process::inject(const Library& lib, const bool& verbose)
 
 	if (Module module = isInjected(lib))
 	{
-		IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(module.handle()).read();
+		IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(module.handle());
 		void* nt_header_address = (void*)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
-		IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address).read();
+		IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address);
 
 		if (verbose)
 		{
@@ -273,9 +273,9 @@ void Process::listModules()
 
 		if (!ntMappedFileName.empty())
 		{
-			IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(mem_basic_info.AllocationBase).read();
+			IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(mem_basic_info.AllocationBase);
 			void* nt_header_address = (void*)((DWORD_PTR)mem_basic_info.AllocationBase + dos_header.e_lfanew);
-			IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address).read();
+			IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address);
 			cout << format("0x%p, %.1f kB, ") % mem_basic_info.AllocationBase % (nt_header.OptionalHeader.SizeOfImage / 1024.0) << to_string(ntMappedFileName) << endl;
 		}
 	}
