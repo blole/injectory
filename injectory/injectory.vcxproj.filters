@@ -17,9 +17,6 @@
     <ClCompile Include="dllmain_remotecall.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="findproc.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -43,9 +40,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="findproc.hpp">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="exception.hpp">
       <Filter>headers</Filter>
     </ClInclude>

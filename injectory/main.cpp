@@ -1,6 +1,5 @@
 #include "injectory/common.hpp"
 #include "injectory/exception.hpp"
-#include "injectory/findproc.hpp"
 #include "injectory/library.hpp"
 #include "injectory/process.hpp"
 #include "injectory/module.hpp"
@@ -31,10 +30,10 @@ int main(int argc, char *argv[])
 		po::options_description options("Options");
 
 		targets.add_options()
-			("pid,p",		po::value<int>()->value_name("PID"),		"injection via process id")
-			//("procname",	po::value<string>()->value_name("NAME"),	"injection via process name")
-			//("wndtitle",	po::value<string>()->value_name("TITLE"),	"injection via window title")
-			//("wndclass",	po::value<string>()->value_name("CLASS"),	"injection via window class")
+			("pid,p",		po::value<int>()->value_name("PID"),		"find process by id")
+			("procname,n",	po::wvalue<wstring>()->value_name("NAME"),	"find process by name")
+			("wndtitle,t",	po::wvalue<wstring>()->value_name("TITLE"),	"find process by window title")
+			("wndclass,c",	po::wvalue<wstring>()->value_name("CLASS"),	"find process by window class, can be combined with --wndtitle")
 			("launch,l",	po::wvalue<wstring>()->value_name("EXE"),	"launches the target in a new process")
 			("args,a",		po::wvalue<wstring>()->value_name("STRING")->default_value(L"", ""),
 																		"arguments for --launch:ed process")
@@ -103,6 +102,21 @@ int main(int argc, char *argv[])
 			proc = Process::open(pid);
 			proc.suspend();
 		}
+		else if (vars.count("procname"))
+		{
+			wstring name = vars["procname"].as<wstring>();
+			proc = Process::findByExeName(name);
+			proc.suspend();
+		}
+		else if (vars.count("wndtitle") || vars.count("wndclass"))
+		{
+			wstring wndtitle;
+			wstring wndclass;
+			if (vars.count("wndtitle")) wndtitle = vars["wndtitle"].as<wstring>();
+			if (vars.count("wndclass")) wndclass = vars["wndclass"].as<wstring>();
+			proc = Process::findByWindow(wndclass, wndtitle);
+			proc.suspend();
+		}
 		else if (vars.count("launch"))
 		{
 			using boost::none;
@@ -112,16 +126,7 @@ int main(int argc, char *argv[])
 			proc = Process::launch(app, args, none, none, false, CREATE_SUSPENDED).process;
 		}
 		else
-			throw po::error("no --pid or --launch given");
-
-		/*
-		else if (vars.count("procname"))
-		InjectEjectToProcessNameA(var_string("procname"), lib, nullptr, !eject, mm);
-		else if (vars.count("wndtitle"))
-		InjectEjectToWindowTitleA(var_string("wndtitle"), lib, nullptr, !eject, mm);
-		else if (vars.count("wndclass"))
-		InjectEjectToWindowClassA(var_string("wndclass"), lib, nullptr, !eject, mm);
-		*/
+			throw po::error("missing target (--pid, --procname, --wndtitle, --wndclass or --launch)");
 
 		if (proc)
 		{
@@ -177,7 +182,7 @@ int main(int argc, char *argv[])
 				proc.kill();
 		}
 	}
-	catch (const boost::program_options::error& e)
+	catch (const po::error& e)
 	{
 		cerr << "injectory: " << e.what() << endl;
 		cerr << "Try 'injectory --help' for more information." << endl;

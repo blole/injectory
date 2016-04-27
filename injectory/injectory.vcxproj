@@ -139,7 +139,6 @@
   <ItemGroup>
     <ClCompile Include="dllmain_remotecall.cpp" />
     <ClCompile Include="exception.cpp" />
-    <ClCompile Include="findproc.cpp" />
     <ClCompile Include="winhandle.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
@@ -152,7 +151,6 @@
     <ClInclude Include="api.hpp" />
     <ClInclude Include="exception.hpp" />
     <ClInclude Include="file.hpp" />
-    <ClInclude Include="findproc.hpp" />
     <ClInclude Include="handle.hpp" />
     <ClInclude Include="job.hpp" />
     <ClInclude Include="library.hpp" />

@@ -16,7 +16,11 @@ Examples:
   injectory --pid 12345 --inject b.dll --wait-for-exit
 
 Targets:
-  -p [ --pid ] PID         injection via process id
+  -p [ --pid ] PID         find process by id
+  -n [ --procname ] NAME   find process by name
+  -t [ --wndtitle ] TITLE  find process by window title
+  -c [ --wndclass ] CLASS  find process by window class, can be combined with
+                           --wndtitle
   -l [ --launch ] EXE      launches the target in a new process
   -a [ --args ] STRING     arguments for --launch:ed process
 

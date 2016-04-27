@@ -211,6 +211,9 @@ public:
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
 		STARTUPINFOW startupInfo = {});
 
+	static Process findByExeName(wstring name);
+	static Process findByWindow(wstring className, wstring windowName);
+
 public:
 	virtual operator bool() const override
 	{

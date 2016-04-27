@@ -290,7 +290,7 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 	}
 	catch (const boost::exception& e)
 	{
-		e << e_text("failed to map the PE file into the remote address space of a process") << e_library(lib.path()) << e_proc(*this);
+		e << e_text("failed to map PE file into memory") << e_library(lib.path()) << e_proc(*this);
 		throw;
 	}
 }

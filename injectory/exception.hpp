@@ -38,3 +38,9 @@ typedef boost::error_info<struct tag_process, Process> e_proc;
 typedef boost::error_info<struct tag_nt_status, LONG> e_nt_status;
 typedef boost::error_info<struct tag_last_error, DWORD> e_last_error;
 using e_api_function = boost::errinfo_api_function;
+
+namespace boost
+{
+	string to_string(const e_last_error& x);
+	string to_string(const e_proc& x);
+}

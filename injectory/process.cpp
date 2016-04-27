@@ -41,6 +41,46 @@ ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));
 }
 
+Process Process::findByWindow(wstring className, wstring windowName)
+{
+	HWND hwnd = FindWindowW(className.empty() ? nullptr : className.c_str(), windowName.empty() ? nullptr : windowName.c_str());
+	if (!hwnd)
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("FindWindow") << e_text("could not find window class:'" + to_string(className) + "' title:'" + to_string(windowName) + "'") << e_last_error(errcode));
+	}
+
+	pid_t pid = 0;
+	GetWindowThreadProcessId(hwnd, &pid);
+	if (pid == 0)
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetWindowThreadProcessId") << e_text("could not get process id for window class:'" + to_string(className) + "' title:'" + to_string(windowName) + "'"));
+
+	return Process::open(pid);
+}
+
+Process Process::findByExeName(wstring name)
+{
+	WinHandle procSnap(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0), CloseHandle);
+
+	if (procSnap.handle() == INVALID_HANDLE_VALUE)
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateToolhelp32Snapshot") << e_text("could not get process snapshot for '" + to_string(name) + "'") << e_last_error(errcode));
+	}
+
+	PROCESSENTRY32W pe32 = { sizeof(PROCESSENTRY32W) };
+	if (Process32FirstW(procSnap.handle(), &pe32))
+	{
+		do
+		{
+			if (boost::iequals(name, pe32.szExeFile))
+				return Process::open(pe32.th32ProcessID);
+		} while (Process32NextW(procSnap.handle(), &pe32));
+	}
+
+	BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get find process '" + to_string(name) + "'"));
+}
+
 void Process::suspend(bool _suspend) const
 {
 	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
