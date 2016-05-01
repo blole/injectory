@@ -35,7 +35,7 @@ ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 			creationFlags, nullptr, nullptr, &startupInfo, &pi))
 	{
 		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateProcess") << e_last_error(errcode));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateProcess") << e_last_error(errcode) << e_file(app));
 	}
 	else
 		return ProcessWithThread(Process(pi.dwProcessId, pi.hProcess), Thread(pi.dwThreadId, pi.hThread));

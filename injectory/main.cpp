@@ -10,7 +10,7 @@ namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "5.1.0"
+#define VERSION "5.1.1-SNAPSHOT"
 
 template <typename T>
 po::typed_value<vector<T>, wchar_t>* wvector()
@@ -130,7 +130,16 @@ int main(int argc, char *argv[])
 
 		if (proc)
 		{
-			if (proc.is64bit() != is64bit)
+			auto& inject = vars["inject"].as<vector<wstring>>();
+			auto& map = vars["map"].as<vector<wstring>>();
+			auto& eject = vars["eject"].as<vector<wstring>>();
+			auto& injectw = vars["injectw"].as<vector<wstring>>();
+			auto& mapw = vars["mapw"].as<vector<wstring>>();
+			auto& ejectw = vars["ejectw"].as<vector<wstring>>();
+
+			bool anyInjections = !(inject.empty() && map.empty() && eject.empty() && injectw.empty() && mapw.empty() && ejectw.empty());
+
+			if (anyInjections && (proc.is64bit() != is64bit))
 				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_proc(proc));
 
 			Job job;
@@ -142,13 +151,6 @@ int main(int argc, char *argv[])
 				jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 				job.setInfo(JobObjectExtendedLimitInformation, jeli);
 			}
-
-			auto& inject  = vars["inject"] .as<vector<wstring>>();
-			auto& map     = vars["map"]    .as<vector<wstring>>();
-			auto& eject   = vars["eject"]  .as<vector<wstring>>();
-			auto& injectw = vars["injectw"].as<vector<wstring>>();
-			auto& mapw    = vars["mapw"]   .as<vector<wstring>>();
-			auto& ejectw  = vars["ejectw"] .as<vector<wstring>>();
 
 			for (const Library& lib : inject)	proc.inject(lib, verbose);
 			for (const Library& lib : map)		proc.mapRemoteModule(lib, verbose);
