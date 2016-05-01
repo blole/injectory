@@ -1,4 +1,6 @@
 # injectory
+
+[![Join the chat at https://gitter.im/blole/injectory](https://badges.gitter.im/blole/injectory.svg)](https://gitter.im/blole/injectory?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 A command-line interface DLL injector for injecting/ejecting DLL libraries into running/new processes.
 Uses LoadLibrary (or alternatively a manual version) and CreateRemoteThread.
 
