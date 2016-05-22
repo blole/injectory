@@ -6,14 +6,14 @@ const Module& Module::exe()
 	static Module m(GetModuleHandleW(nullptr), Process::current);
 	return m;
 }
-const Module& Module::kernel32()
+const ModuleKernel32& Module::kernel32()
 {
-	static Module m("kernel32");
+	static ModuleKernel32 m;
 	return m;
 }
-const Module& Module::ntdll()
+const ModuleNtdll& Module::ntdll()
 {
-	static Module m("ntdll");
+	static ModuleNtdll m;
 	return m;
 }
 

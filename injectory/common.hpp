@@ -29,8 +29,6 @@ using std::function;
 	const bool is64bit = false;
 #endif
 
-#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
-
 
 #define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
 

@@ -3,28 +3,6 @@
 
 using namespace std;
 
-enum MY_THREAD_INFORMATION_CLASS
-{
-	ThreadBasicInformation,
-	ThreadTimes,
-	ThreadPriority,
-	ThreadBasePriority,
-	ThreadAffinityMask,
-	ThreadImpersonationToken,
-	ThreadDescriptorTableEntry,
-	ThreadEnableAlignmentFaultFixup,
-	ThreadEventPair,
-	ThreadQuerySetWin32StartAddress,
-	ThreadZeroTlsCell,
-	ThreadPerformanceCount,
-	ThreadAmILastThread,
-	ThreadIdealProcessor,
-	ThreadPriorityBoost,
-	ThreadSetTlsArrayAddress,
-	ThreadIsIoPending,
-	ThreadHideFromDebugger
-};
-
 Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 {
 	Thread thread(tid, OpenThread(desiredAccess, inheritHandle, tid));
@@ -39,12 +17,7 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 
 void Thread::hideFromDebugger() const
 {
-	auto ntSetInformationThread = Module::ntdll().getProcAddress<LONG, HANDLE, MY_THREAD_INFORMATION_CLASS, PVOID, ULONG>("NtSetInformationThread");
-	//LONG(HANDLE, MY_THREAD_INFORMATION_CLASS, ThreadInformation, ThreadInformationLength)
-
-	LONG ntStatus = ntSetInformationThread(handle(), ThreadHideFromDebugger, nullptr, 0);
-	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_hide() << e_api_function("NtSetInformationThread") << e_text("could not hide thread") << e_nt_status(ntStatus) << e_tid(id()));
+	Module::ntdll().ntSetInformationThread(*this, ModuleNtdll::ThreadHideFromDebugger, nullptr, 0);
 }
 
 void Thread::setPriority(int priority)

@@ -81,13 +81,12 @@ Process Process::findByExeName(wstring name)
 	BOOST_THROW_EXCEPTION(ex_injection() << e_text("could not get find process '" + to_string(name) + "'"));
 }
 
-void Process::suspend(bool _suspend) const
+void Process::suspend(bool suspend_) const
 {
-	string funcName = _suspend ? "NtSuspendProcess" : "NtResumeProcess";
-	auto func = Module::ntdll().getProcAddress<LONG, HANDLE>(funcName);
-	LONG ntStatus = func(handle());
-	if (!NT_SUCCESS(ntStatus))
-		BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_api_function(funcName.c_str()) << e_text("error calling remote function") << e_nt_status(ntStatus));
+	if (suspend_)
+		Module::ntdll().ntSuspendProcess(*this);
+	else
+		Module::ntdll().ntResumeProcess(*this);
 }
 
 void Process::suspendAllThreads(bool _suspend) const
@@ -199,20 +198,7 @@ bool Process::is64bit() const
 	SYSTEM_INFO systemInfo = getNativeSystemInfo();
 
 	if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64
-	{
-		// In 64bit systems, IsWow64Process returns true for 32 bit processes.
-
-		BOOL isWow64 = false;
-
-		auto isWow64Process = Module::kernel32().getProcAddress<BOOL, HANDLE, PBOOL>("IsWow64Process");
-		if (!isWow64Process(handle(), &isWow64))
-		{
-			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("IsWow64Process") << e_last_error(errcode));
-		}
-
-		return !isWow64;
-	}
+		return Module::kernel32().isWow64Process(handle());
 	else if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
 		return false;
 	else
