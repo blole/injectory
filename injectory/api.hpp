@@ -30,7 +30,7 @@ inline void* VirtualAllocEx_Throwing(const Process& proc, void* address, SIZE_T 
 	if (!area)
 	{
 		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualAllocEx") << e_text("could not allocate memory") << e_last_error(errcode) << e_proc(proc));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("VirtualAllocEx") << e_text("could not allocate memory") << e_last_error(errcode) << e_process(proc));
 	}
 	return area;
 }
@@ -41,10 +41,10 @@ inline void ReadProcessMemory_Throwing(const Process& process, void* address, vo
 	if (!ReadProcessMemory(process.handle(), address, out, size, &numBytesRead))
 	{
 		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory") << e_last_error(errcode) << e_proc(process));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("could not read memory") << e_last_error(errcode) << e_process(process));
 	}
 	if (numBytesRead != size)
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("only read " + to_string(numBytesRead) + "/" + to_string(size) + " //tes") << e_proc(process));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("ReadProcessMemory") << e_text("only read " + to_string(numBytesRead) + "/" + to_string(size) + " //tes") << e_process(process));
 }
 
 inline void WriteProcessMemory_Throwing(const Process& process, void* dst, const void* src, SIZE_T size)

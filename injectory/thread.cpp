@@ -17,7 +17,14 @@ Thread Thread::open(const tid_t & tid, bool inheritHandle, DWORD desiredAccess)
 
 void Thread::hideFromDebugger() const
 {
-	Module::ntdll().ntSetInformationThread(*this, ModuleNtdll::ThreadHideFromDebugger, nullptr, 0);
+	try
+	{
+		Module::ntdll().ntSetInformationThread(*this, ModuleNtdll::ThreadHideFromDebugger, nullptr, 0);
+	}
+	catch (...)
+	{
+		BOOST_THROW_EXCEPTION(ex("could not hide thread from debugger") << boost::errinfo_nested_exception(boost::current_exception()));
+	}
 }
 
 void Thread::setPriority(int priority)

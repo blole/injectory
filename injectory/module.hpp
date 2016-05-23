@@ -138,13 +138,13 @@ public:
 		, getNativeSystemInfo(getProcAddress<void(SYSTEM_INFO*)>("GetNativeSystemInfo", false))
 	{}
 
-	bool isWow64Process(HANDLE handle) const
+	bool isWow64Process(const Process& proc) const
 	{
 		BOOL isWow64 = false;
-		if (!isWow64Process_(handle, &isWow64))
+		if (!isWow64Process_(proc.handle(), &isWow64))
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("IsWow64Process") << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("IsWow64Process") << e_process(proc) << e_last_error(errcode));
 		}
 		return !isWow64;
 	}
@@ -201,14 +201,14 @@ public:
 	{
 		NTSTATUS status = ntResumeProcess_(proc.handle());
 		if (!NT_SUCCESS(status))
-			BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_proc(proc) << e_api_function("NtResumeProcess") << e_text("error calling remote function") << e_nt_status(status));
+			BOOST_THROW_EXCEPTION(ex("could not resume process") << e_process(proc) << e_api_function("NtResumeProcess") << e_nt_status(status));
 	}
 
 	void ntSuspendProcess(const Process& proc) const
 	{
 		NTSTATUS status = ntSuspendProcess_(proc.handle());
 		if (!NT_SUCCESS(status))
-			BOOST_THROW_EXCEPTION(ex_suspend_resume_process() << e_proc(proc) << e_api_function("NtSuspendProcess") << e_text("error calling remote function") << e_nt_status(status));
+			BOOST_THROW_EXCEPTION(ex("could not suspend process") << e_process(proc) << e_api_function("NtSuspendProcess") << e_nt_status(status));
 	}
 
 	void ntSetInformationThread(const Thread& thread, MY_THREAD_INFORMATION_CLASS infoClass, void* info, unsigned long infoLength) const

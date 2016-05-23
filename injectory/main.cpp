@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 			bool anyInjections = !(inject.empty() && map.empty() && eject.empty() && injectw.empty() && mapw.empty() && ejectw.empty());
 
 			if (anyInjections && (proc.is64bit() != is64bit))
-				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_proc(proc));
+				BOOST_THROW_EXCEPTION(ex_target_bit_mismatch() << e_process(proc));
 
 			Job job;
 			if (vars.count("kill-on-exit"))
@@ -188,21 +188,11 @@ int main(int argc, char *argv[])
 	{
 		cerr << "injectory: " << e.what() << endl;
 		cerr << "Try 'injectory --help' for more information." << endl;
-
-		if (vars.count("rethrow")) throw; else return 1;
-	}
-	catch (const std::exception& e)
-	{
-		const boost::exception* be = boost::exception_detail::get_boost_exception(&e);
-		if (be && !algo::starts_with(boost::diagnostic_information_what(*be), "Throw location unknown"))
-			cerr << "injectory: " << boost::diagnostic_information_what(*be);
-		else
-			cerr << "injectory: " << e.what() << endl;
 		if (vars.count("rethrow")) throw; else return 1;
 	}
 	catch (...)
 	{
-		cerr << "injectory: unkown exception" << endl;
+		print_exception(std::current_exception(), "injectory");
 		if (vars.count("rethrow")) throw; else return 1;
 	}
 

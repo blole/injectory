@@ -142,7 +142,7 @@ MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationT
 Module Process::inject(const Library& lib, const bool& verbose)
 {
 	if (isInjected(lib))
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib.path()) << e_proc(*this));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib.path()) << e_process(*this));
 
 	// copy the pathname to the remote process
 	SIZE_T libPathLen = (lib.path().wstring().size() + 1) * sizeof(wchar_t);
@@ -198,11 +198,11 @@ bool Process::is64bit() const
 	SYSTEM_INFO systemInfo = getNativeSystemInfo();
 
 	if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) // x64
-		return Module::kernel32().isWow64Process(handle());
+		return Module::kernel32().isWow64Process(*this);
 	else if (systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) // x86
 		return false;
 	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_proc(*this));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to determine whether x86 or x64") << e_process(*this));
 }
 
 Module Process::isInjected(const Library& lib)
@@ -253,14 +253,14 @@ Module Process::getInjected(const Library& lib)
 	if (Module module = isInjected(lib))
 		return module;
 	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find injected library") << e_proc(*this) << e_library(lib.path()));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find injected library") << e_process(*this) << e_library(lib.path()));
 }
 Module Process::getInjected(HMODULE hmodule)
 {
 	if (Module module = isInjected(hmodule))
 		return module;
 	else
-		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_proc(*this));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_text("failed to find module handle") << e_process(*this));
 }
 
 Module Process::map(const File& file)

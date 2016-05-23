@@ -23,7 +23,7 @@ wstring Module::path() const
 	if (!GetModuleFileNameExW(process.handle(), handle(), buffer, MAX_PATH))
 	{
 		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_proc(process) << e_last_error(errcode));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_process(process) << e_last_error(errcode));
 	}
 	return wstring(buffer);
 }
@@ -34,7 +34,7 @@ wstring Module::mappedFilename(bool throwOnFail) const
 	if (!GetMappedFileNameW(process.handle(), handle(), buffer, 500) && throwOnFail)
 	{
 		DWORD errcode = GetLastError();
-		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetMappedFileName") << e_proc(process) << e_last_error(errcode));
+		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetMappedFileName") << e_process(process) << e_last_error(errcode));
 	}
 	return wstring(buffer);
 }

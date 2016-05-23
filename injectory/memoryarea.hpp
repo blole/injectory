@@ -33,7 +33,7 @@ public:
 		if (!FlushInstructionCache(process.handle(), address(), size()))
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("FlushInstructionCache") << e_text("could not flush instruction cache") << e_last_error(errcode) << e_proc(process));
+			BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("FlushInstructionCache") << e_text("could not flush instruction cache") << e_last_error(errcode) << e_process(process));
 		}
 	}
 };
