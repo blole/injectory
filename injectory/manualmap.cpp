@@ -12,42 +12,37 @@ namespace ip = boost::interprocess;
 
 
 // Matt Pietrek's function
-PIMAGE_SECTION_HEADER GetEnclosingSectionHeader(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader)
+IMAGE_SECTION_HEADER* GetEnclosingSectionHeader(DWORD_PTR rva, IMAGE_NT_HEADERS& nt_header)
 {
-	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(pNTHeader);
-	WORD nSection = 0;
+	IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(&nt_header);
 
-	for(nSection = 0; nSection < pNTHeader->FileHeader.NumberOfSections; nSection++, section++ )
+	for (int i = 0; i < nt_header.FileHeader.NumberOfSections; i++, section++)
 	{
 		// This 3 line idiocy is because Watcom's linker actually sets the
 		// Misc.VirtualSize field to 0.  (!!! - Retards....!!!)
 		DWORD_PTR size = section->Misc.VirtualSize;
-		if(size == 0)
-		{
+		if (size == 0)
 			size = section->SizeOfRawData;
-		}
 
 		// Is the RVA within this section?
-		if( (rva >= section->VirtualAddress) && (rva < (section->VirtualAddress + size)) )
-		{
+		if (rva >= section->VirtualAddress && rva < (section->VirtualAddress + size))
 			return section;
-		}
 	}
 
 	return 0;
 }
 
 // Matt Pietrek's function
-void* GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, const ip::mapped_region& imageBase)
+void* GetPtrFromRVA(DWORD_PTR rva, IMAGE_NT_HEADERS& nt_header, const ip::mapped_region& imageBase)
 {
-	PIMAGE_SECTION_HEADER section = GetEnclosingSectionHeader(rva, pNTHeader);
+	IMAGE_SECTION_HEADER* section = GetEnclosingSectionHeader(rva, nt_header);
 	if(!section)
 		return 0;
 	LONG_PTR delta = (LONG_PTR)( section->VirtualAddress - section->PointerToRawData );
 	return (void*)((byte*)imageBase.get_address() + rva - delta);
 }
 
-void Process::fixIAT(const ip::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
+void Process::fixIAT(const ip::mapped_region& imageBase, IMAGE_NT_HEADERS& nt_header, IMAGE_IMPORT_DESCRIPTOR* imgImpDesc)
 {
 	fs::path parentPath = path().parent_path();
 	if (!SetDllDirectoryW(parentPath.wstring().c_str()))
@@ -56,7 +51,7 @@ void Process::fixIAT(const ip::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHe
 		BOOST_THROW_EXCEPTION(ex_fix_iat() << e_api_function("SetDllDirectory") << e_text("could not set path to target process") << e_file(parentPath) << e_last_error(errcode));
 	}
 
-	while (LPSTR lpModuleName = (LPSTR)GetPtrFromRVA(pImgImpDesc->Name, pNtHeader, imageBase))
+	while (LPSTR lpModuleName = (LPSTR)GetPtrFromRVA(imgImpDesc->Name, nt_header, imageBase))
 	{
 		// ACHTUNG: LoadLibraryEx kann eine DLL nur anhand des Namen aus einem anderen
 		// Verzeichnis laden wie der Zielprozess!
@@ -67,26 +62,25 @@ void Process::fixIAT(const ip::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHe
 		if (!remoteModule)
 			remoteModule = inject(lib);
 
-		PIMAGE_THUNK_DATA itd = (PIMAGE_THUNK_DATA)GetPtrFromRVA(pImgImpDesc->FirstThunk, pNtHeader, imageBase);
+		IMAGE_THUNK_DATA* itd = (IMAGE_THUNK_DATA*)GetPtrFromRVA(imgImpDesc->FirstThunk, nt_header, imageBase);
 
 		while(itd->u1.AddressOfData)
 		{
-			IMAGE_IMPORT_BY_NAME *iibn =
-				(PIMAGE_IMPORT_BY_NAME)GetPtrFromRVA(itd->u1.AddressOfData, pNtHeader, imageBase);
+			IMAGE_IMPORT_BY_NAME*iibn = (IMAGE_IMPORT_BY_NAME*)GetPtrFromRVA(itd->u1.AddressOfData, nt_header, imageBase);
 			itd->u1.Function = (DWORD_PTR)remoteModule.getProcAddress((LPCSTR)iibn->Name);
 
 			itd++;
 		}      
 
-		pImgImpDesc++;
+		imgImpDesc++;
 	}
 }
 
-void Process::mapSections(void* lpModuleBase, byte* dllBin, PIMAGE_NT_HEADERS nt_header)
+void Process::mapSections(void* lpModuleBase, byte* dllBin, IMAGE_NT_HEADERS& nt_header)
 {
-	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(nt_header);
+	IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(&nt_header);
 
-	for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++, section++)
+	for (int i = 0; i < nt_header.FileHeader.NumberOfSections; i++, section++)
 	{
 		void* dst = (void*)( (DWORD_PTR)lpModuleBase + section->VirtualAddress );
 		const void* src = (const void*)( (DWORD_PTR)dllBin + section->PointerToRawData );
@@ -112,33 +106,33 @@ void Process::mapSections(void* lpModuleBase, byte* dllBin, PIMAGE_NT_HEADERS nt
 
 void fixRelocations(const ip::mapped_region& dllBin,
 	const MemoryArea& moduleBase,
-	PIMAGE_NT_HEADERS pNtHeader,
-	PIMAGE_BASE_RELOCATION pImgBaseReloc
+	IMAGE_NT_HEADERS& nt_header,
+	IMAGE_BASE_RELOCATION* imgBaseReloc
 	)
 {
-	LONG_PTR delta = (DWORD_PTR)moduleBase.address() - pNtHeader->OptionalHeader.ImageBase;
+	LONG_PTR delta = (DWORD_PTR)moduleBase.address() - nt_header.OptionalHeader.ImageBase;
 	//SIZE_T relocationSize = pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
-	WORD *pRelocData = 0;
+	WORD* relocData = 0;
 
-	if (!pImgBaseReloc->SizeOfBlock) // image has no relocations
+	if (!imgBaseReloc->SizeOfBlock) // image has no relocations
 		return;
 	
 	do
 	{
-		PBYTE pRelocBase = (PBYTE)GetPtrFromRVA(pImgBaseReloc->VirtualAddress, pNtHeader, dllBin);
-		SIZE_T numRelocations = (pImgBaseReloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
+		byte* relocBase = (byte*)GetPtrFromRVA(imgBaseReloc->VirtualAddress, nt_header, dllBin);
+		SIZE_T numRelocations = (imgBaseReloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
 		SIZE_T i = 0;
 
 		//printf("numRelocations: %d\n", numRelocations);
 
-		pRelocData = (WORD*)( (DWORD_PTR)pImgBaseReloc + sizeof(IMAGE_BASE_RELOCATION) );
+		relocData = (WORD*)( (DWORD_PTR)&imgBaseReloc + sizeof(IMAGE_BASE_RELOCATION) );
 
 		// loop over all relocation entries
-		for(i = 0; i < numRelocations; i++, pRelocData++)
+		for(i = 0; i < numRelocations; i++, relocData++)
 		{
 			// Get reloc data
-			BYTE RelocType = *pRelocData >> 12;
-			WORD Offset = *pRelocData & 0xFFF;
+			BYTE RelocType = *relocData >> 12;
+			WORD Offset = *relocData & 0xFFF;
 
 			switch(RelocType)
 			{
@@ -146,11 +140,11 @@ void fixRelocations(const ip::mapped_region& dllBin,
 				break;
 
 			case IMAGE_REL_BASED_HIGHLOW:
-				*(DWORD32*)(pRelocBase + Offset) += (DWORD32)delta;
+				*(DWORD32*)(relocBase + Offset) += (DWORD32)delta;
 				break;
 
 			case IMAGE_REL_BASED_DIR64:
-				*(DWORD64*)(pRelocBase + Offset) += delta;
+				*(DWORD64*)(relocBase + Offset) += delta;
 
 				break;
 
@@ -159,34 +153,34 @@ void fixRelocations(const ip::mapped_region& dllBin,
 			}
 		}
 
-		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)pRelocData;
+		imgBaseReloc = (IMAGE_BASE_RELOCATION*)relocData;
 
-	} while( *(DWORD*)pRelocData );
+	} while( *(DWORD*)relocData );
 }
 
 void Process::callTlsInitializers(
 	HMODULE hModule,
 	DWORD fdwReason,
-	PIMAGE_TLS_DIRECTORY pImgTlsDir)
+	IMAGE_TLS_DIRECTORY& imgTlsDir)
 {
-	DWORD_PTR pCallbacks = (DWORD_PTR)pImgTlsDir->AddressOfCallBacks;
+	DWORD_PTR callbacks = (DWORD_PTR)imgTlsDir.AddressOfCallBacks;
 
-	if (pCallbacks)
+	if (callbacks)
 	{
 		for (;;)
 		{
-			void* callback = memory<void*>((void*)pCallbacks);
+			void* callback = memory<void*>((void*)callbacks);
 
 			if (!callback)
 				break;
 
 			remoteDllMainCall(callback, hModule, fdwReason, nullptr);
-			pCallbacks += sizeof(DWORD_PTR);
+			callbacks += sizeof(DWORD_PTR);
 		}
 	}
 }
 
-void Process::mapRemoteModule(const Library& lib, const bool& verbose)
+Module Process::mapRemoteModule(const Library& lib)
 {
 	try
 	{
@@ -209,20 +203,20 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 		MemoryArea moduleBase = alloc(nt_header.OptionalHeader.SizeOfImage, false);
 		
 		// fix imports
-		IMAGE_IMPORT_DESCRIPTOR* pImgImpDesc = (IMAGE_IMPORT_DESCRIPTOR*)GetPtrFromRVA(
+		IMAGE_IMPORT_DESCRIPTOR& imgImpDesc = *(IMAGE_IMPORT_DESCRIPTOR*)GetPtrFromRVA(
 			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
-			&nt_header,
+			nt_header,
 			region);
 		if (nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
-			fixIAT(region, &nt_header, pImgImpDesc);
+			fixIAT(region, nt_header, &imgImpDesc);
 		
 		// fix relocs
-		PIMAGE_BASE_RELOCATION pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(
+		IMAGE_BASE_RELOCATION& imgBaseReloc = *(IMAGE_BASE_RELOCATION*)GetPtrFromRVA(
 			(DWORD)(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress),
-			&nt_header,
+			nt_header,
 			region);
 		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
-			fixRelocations(region, moduleBase, &nt_header, pImgBaseReloc);
+			fixRelocations(region, moduleBase, nt_header, &imgBaseReloc);
 
 		// Write the PE header into the remote process's memory space
 		moduleBase.write(region.get_address(), nt_header.FileHeader.SizeOfOptionalHeader +
@@ -231,16 +225,15 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 		// Map the sections into the remote process(they need to be aligned
 		// along their virtual addresses)
-		mapSections(moduleBase.address(), (byte*)region.get_address(), &nt_header);
+		mapSections(moduleBase.address(), (byte*)region.get_address(), nt_header);
 
 		// call all tls callbacks
-		//
-		PIMAGE_TLS_DIRECTORY pImgTlsDir = (PIMAGE_TLS_DIRECTORY)GetPtrFromRVA(
+		IMAGE_TLS_DIRECTORY& imgTlsDir = *(IMAGE_TLS_DIRECTORY*)GetPtrFromRVA(
 			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress,
-			&nt_header,
+			nt_header,
 			region);
 		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
-			callTlsInitializers((HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
+			callTlsInitializers((HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, imgTlsDir);
 
 		// call entry point
 		remoteDllMainCall(

@@ -129,13 +129,13 @@ public:
 	// in 64bit systems, returns true for 32 bit processes.
 	const function<BOOL(HANDLE, BOOL*)> isWow64Process_;
 	// may be null
-	const function<void(SYSTEM_INFO*)> getNativeSystemInfo;
+	const function<void(SYSTEM_INFO*)> getNativeSystemInfo_;
 
 public:
 	ModuleKernel32()
 		: Module("kernel32")
 		, isWow64Process_(getProcAddress<BOOL(HANDLE, PBOOL)>("IsWow64Process"))
-		, getNativeSystemInfo(getProcAddress<void(SYSTEM_INFO*)>("GetNativeSystemInfo", false))
+		, getNativeSystemInfo_(getProcAddress<void(SYSTEM_INFO*)>("GetNativeSystemInfo", false))
 	{}
 
 	bool isWow64Process(const Process& proc) const

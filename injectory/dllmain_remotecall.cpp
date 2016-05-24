@@ -30,5 +30,5 @@ void Process::remoteDllMainCall(void* lpModuleEntry, HMODULE hModule, DWORD ul_r
 	param = dllMainCall;
 	dllCallWrapper.write(DllMainWrapper);
 
-	runInHiddenThread((LPTHREAD_START_ROUTINE)dllCallWrapper.address(), param.address());
+	runInHiddenThread((PTHREAD_START_ROUTINE)dllCallWrapper.address(), param.address());
 }

@@ -41,6 +41,6 @@ wstring Module::mappedFilename(bool throwOnFail) const
 
 void Module::eject()
 {
-	LPTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("FreeLibrary");
+	PTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("FreeLibrary");
 	process.runInHiddenThread(freeLibrary, handle());
 }

@@ -149,8 +149,8 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((void*)(lib.path().c_str()));
 
-	LPTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
 	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
+	PTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
 
 	if (Module module = isInjected(lib))
 	{
@@ -181,7 +181,7 @@ Module Process::inject(const Library& lib, const bool& verbose)
 		return Module(); //injected successfully, but module access denied TODO: really? does this happen?
 }
 
-DWORD Process::runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter)
+DWORD Process::runInHiddenThread(PTHREAD_START_ROUTINE startAddress, LPVOID parameter)
 {
 	Thread thread = createRemoteThread(startAddress, parameter, CREATE_SUSPENDED);
 	thread.setPriority(THREAD_PRIORITY_TIME_CRITICAL);

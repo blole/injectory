@@ -14,7 +14,7 @@ inline SYSTEM_INFO getNativeSystemInfo()
 {
 	SYSTEM_INFO systemInfo = { 0 };
 
-	auto getNativeSystemInfo_ = Module::kernel32().getNativeSystemInfo;
+	auto getNativeSystemInfo_ = Module::kernel32().getNativeSystemInfo_;
 
 	if (getNativeSystemInfo_)
 		getNativeSystemInfo_(&systemInfo);

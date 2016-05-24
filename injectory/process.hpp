@@ -109,8 +109,8 @@ public:
 	Module inject(const Library& lib, const bool& verbose = false);
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
 
-	void callTlsInitializers(HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
-	void fixIAT(const boost::interprocess::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
+	void callTlsInitializers(HMODULE hModule, DWORD fdwReason, IMAGE_TLS_DIRECTORY& imgTlsDir);
+	void fixIAT(const boost::interprocess::mapped_region& imageBase, IMAGE_NT_HEADERS& nt_header, IMAGE_IMPORT_DESCRIPTOR* imgImpDesc);
 
 	bool is64bit() const;
 	MEMORY_BASIC_INFORMATION memBasicInfo(const void* addr)
@@ -138,8 +138,8 @@ public:
 
 	Module map(const File& file);
 
-	DWORD runInHiddenThread(LPTHREAD_START_ROUTINE startAddress, LPVOID parameter);
-	Thread createRemoteThread(LPTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
+	DWORD runInHiddenThread(PTHREAD_START_ROUTINE startAddress, LPVOID parameter);
+	Thread createRemoteThread(PTHREAD_START_ROUTINE startAddr, LPVOID parameter, DWORD creationFlags = 0,
 		LPSECURITY_ATTRIBUTES attr = nullptr, SIZE_T stackSize = 0)
 	{
 		DWORD tid;
@@ -154,7 +154,7 @@ public:
 	}
 
 	void remoteDllMainCall(void* moduleEntry, HMODULE hModule, DWORD ul_reason_for_call, void* lpReserved);
-	void mapSections(void* moduleBase, byte* dllBin, PIMAGE_NT_HEADERS nt_header);
+	void mapSections(void* moduleBase, byte* dllBin, IMAGE_NT_HEADERS& nt_header);
 
 	WinHandle openToken(DWORD desiredAccess)
 	{
