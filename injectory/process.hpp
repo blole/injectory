@@ -3,6 +3,7 @@
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
 #include "injectory/winhandle.hpp"
+#include <boost/interprocess/mapped_region.hpp>
 #include <winnt.h>
 #include <Psapi.h>
 
@@ -109,7 +110,7 @@ public:
 	void mapRemoteModule(const Library& lib, const bool& verbose = false);
 
 	void callTlsInitializers(HMODULE hModule, DWORD fdwReason, PIMAGE_TLS_DIRECTORY pImgTlsDir);
-	void fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
+	void fixIAT(const boost::interprocess::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc);
 
 	bool is64bit() const;
 	MEMORY_BASIC_INFORMATION memBasicInfo(const void* addr)

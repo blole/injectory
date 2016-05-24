@@ -30,10 +30,6 @@ using std::function;
 #endif
 
 
-#define PRINT_ERROR_MSGA(...) { printf("Error: [@%s] ", __FUNCTION__); PrintErrorMsgA(__VA_ARGS__); }
-
-void PrintErrorMsgA(char *format, ...);
-
 // a process id
 typedef DWORD pid_t;
 // a thread id

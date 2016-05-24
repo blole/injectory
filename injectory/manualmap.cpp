@@ -8,7 +8,7 @@
 #include <Psapi.h>
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+namespace ip = boost::interprocess;
 
 
 // Matt Pietrek's function
@@ -38,22 +38,16 @@ PIMAGE_SECTION_HEADER GetEnclosingSectionHeader(DWORD_PTR rva, PIMAGE_NT_HEADERS
 }
 
 // Matt Pietrek's function
-LPVOID GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, PBYTE imageBase)
+void* GetPtrFromRVA(DWORD_PTR rva, PIMAGE_NT_HEADERS pNTHeader, const ip::mapped_region& imageBase)
 {
-	PIMAGE_SECTION_HEADER section;
-	LONG_PTR delta;
-
-	section = GetEnclosingSectionHeader(rva, pNTHeader);
+	PIMAGE_SECTION_HEADER section = GetEnclosingSectionHeader(rva, pNTHeader);
 	if(!section)
-	{
 		return 0;
-	}
-
-	delta = (LONG_PTR)( section->VirtualAddress - section->PointerToRawData );
-	return (LPVOID)( imageBase + rva - delta );
+	LONG_PTR delta = (LONG_PTR)( section->VirtualAddress - section->PointerToRawData );
+	return (void*)((byte*)imageBase.get_address() + rva - delta);
 }
 
-void Process::fixIAT(PBYTE imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
+void Process::fixIAT(const ip::mapped_region& imageBase, PIMAGE_NT_HEADERS pNtHeader, PIMAGE_IMPORT_DESCRIPTOR pImgImpDesc)
 {
 	fs::path parentPath = path().parent_path();
 	if (!SetDllDirectoryW(parentPath.wstring().c_str()))
@@ -116,26 +110,18 @@ void Process::mapSections(void* lpModuleBase, byte* dllBin, PIMAGE_NT_HEADERS nt
 	}
 }
 
-BOOL
-FixRelocations(
-	PBYTE dllBin,
-	LPVOID lpModuleBase,
+void fixRelocations(const ip::mapped_region& dllBin,
+	const MemoryArea& moduleBase,
 	PIMAGE_NT_HEADERS pNtHeader,
 	PIMAGE_BASE_RELOCATION pImgBaseReloc
 	)
 {
-	LONG_PTR delta = (DWORD_PTR)lpModuleBase - pNtHeader->OptionalHeader.ImageBase;
+	LONG_PTR delta = (DWORD_PTR)moduleBase.address() - pNtHeader->OptionalHeader.ImageBase;
 	//SIZE_T relocationSize = pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
 	WORD *pRelocData = 0;
 
-	//printf("FixRelocs:\n");
-
-	// image has no relocations
-	if(!pImgBaseReloc->SizeOfBlock)
-	{
-		//printf("Image has no relocations\n");
-		return TRUE;
-	}
+	if (!pImgBaseReloc->SizeOfBlock) // image has no relocations
+		return;
 	
 	do
 	{
@@ -169,16 +155,13 @@ FixRelocations(
 				break;
 
 			default:
-				PRINT_ERROR_MSGA("Unsuppported relocation type.");
-				return FALSE;
+				BOOST_THROW_EXCEPTION(ex("unsuppported relocation type"));
 			}
 		}
 
 		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)pRelocData;
 
 	} while( *(DWORD*)pRelocData );
-
-	return TRUE;
 }
 
 void Process::callTlsInitializers(
@@ -205,13 +188,8 @@ void Process::callTlsInitializers(
 
 void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 {
-	PIMAGE_BASE_RELOCATION pImgBaseReloc = 0;
-	PIMAGE_TLS_DIRECTORY pImgTlsDir = 0;
-
 	try
 	{
-		namespace ip = boost::interprocess;
-
 		File file = File::create(lib.path(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
 
 		ip::file_mapping m_file(lib.path().string().c_str(), ip::read_only);
@@ -234,20 +212,17 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 		IMAGE_IMPORT_DESCRIPTOR* pImgImpDesc = (IMAGE_IMPORT_DESCRIPTOR*)GetPtrFromRVA(
 			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
 			&nt_header,
-			(PBYTE)region.get_address());
+			region);
 		if (nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
-			fixIAT((PBYTE)region.get_address(), &nt_header, pImgImpDesc);
+			fixIAT(region, &nt_header, pImgImpDesc);
 		
 		// fix relocs
-		pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(
+		PIMAGE_BASE_RELOCATION pImgBaseReloc = (PIMAGE_BASE_RELOCATION)GetPtrFromRVA(
 			(DWORD)(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress),
 			&nt_header,
-			(BYTE*)region.get_address());
+			region);
 		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
-		{
-			if(!FixRelocations((BYTE*)region.get_address(), moduleBase.address(), &nt_header, pImgBaseReloc))
-				BOOST_THROW_EXCEPTION (ex_map_remote() << e_text("error fixing relocations"));
-		}
+			fixRelocations(region, moduleBase, &nt_header, pImgBaseReloc);
 
 		// Write the PE header into the remote process's memory space
 		moduleBase.write(region.get_address(), nt_header.FileHeader.SizeOfOptionalHeader +
@@ -260,10 +235,10 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 
 		// call all tls callbacks
 		//
-		pImgTlsDir = (PIMAGE_TLS_DIRECTORY)GetPtrFromRVA(
+		PIMAGE_TLS_DIRECTORY pImgTlsDir = (PIMAGE_TLS_DIRECTORY)GetPtrFromRVA(
 			nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress,
 			&nt_header,
-			(BYTE*)region.get_address());
+			region);
 		if(nt_header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
 			callTlsInitializers((HMODULE)moduleBase.address(), DLL_PROCESS_ATTACH, pImgTlsDir);
 
@@ -288,9 +263,9 @@ void Process::mapRemoteModule(const Library& lib, const bool& verbose)
 				nt_header.OptionalHeader.CheckSum);
 		}
 	}
-	catch (const boost::exception& e)
+	catch (...)
 	{
-		e << e_text("failed to map PE file into memory") << e_library(lib.path()) << e_process(*this);
-		throw;
+		BOOST_THROW_EXCEPTION(ex("failed to map PE file into memory") << e_library(lib.path()) << e_process(*this) <<
+			boost::errinfo_nested_exception(boost::current_exception()));
 	}
 }

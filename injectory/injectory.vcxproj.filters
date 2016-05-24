@@ -20,9 +20,6 @@
     <ClCompile Include="main.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="common.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="process.cpp">
       <Filter>source</Filter>
     </ClCompile>

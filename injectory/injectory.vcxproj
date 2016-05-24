@@ -142,7 +142,6 @@
     <ClCompile Include="winhandle.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manualmap.cpp" />
-    <ClCompile Include="common.cpp" />
     <ClCompile Include="module.cpp" />
     <ClCompile Include="process.cpp" />
     <ClCompile Include="thread.cpp" />
