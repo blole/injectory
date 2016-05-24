@@ -94,8 +94,6 @@ int main(int argc, char *argv[])
 		if (vars.count("dbgpriv"))
 			Process::current.enablePrivilege(L"SeDebugPrivilege");
 
-		bool verbose = vars.count("verbose") > 0;
-
 		if (vars.count("pid"))
 		{
 			int pid = vars["pid"].as<int>();
@@ -152,17 +150,36 @@ int main(int argc, char *argv[])
 				job.setInfo(JobObjectExtendedLimitInformation, jeli);
 			}
 
-			for (const Library& lib : inject)	proc.inject(lib, verbose);
-			for (const Library& lib : map)		proc.mapRemoteModule(lib, verbose);
-			for (const Library& lib : eject)	proc.getInjected(lib).eject();
+			vector<Module> injectedModules;
+
+			for (const fs::path& lib : inject)	injectedModules.push_back(proc.inject(lib));
+			for (const fs::path& lib : map)		injectedModules.push_back(proc.mapRemoteModule(lib));
+			for (const fs::path& lib : eject)	proc.getInjected(lib).eject();
 
 			proc.resume();
 			if (!injectw.empty() || !mapw.empty() || !ejectw.empty())
 				proc.waitForInputIdle(5000);
 
-			for (const Library& lib : injectw)	proc.inject(lib, verbose);
-			for (const Library& lib : mapw)		proc.mapRemoteModule(lib, verbose);
-			for (const Library& lib : ejectw)	proc.getInjected(lib).eject();
+			for (const fs::path& lib : injectw)	injectedModules.push_back(proc.inject(lib));
+			for (const fs::path& lib : mapw)	injectedModules.push_back(proc.mapRemoteModule(lib));
+			for (const fs::path& lib : ejectw)	proc.getInjected(lib).eject();
+
+			if (vars.count("verbose") > 0 && injectedModules.size() > 0)
+			{
+				cout << "injected dll     AllocationBase EntryPoint SizeOfImage CheckSum" << endl;
+				for (Module& module : injectedModules)
+				{
+					IMAGE_NT_HEADERS nt_header = module.ntHeader();
+					cout << format("%-20s 0x%p 0x%p %8.1f kB 0x%08x")
+						% module.path().filename().string()
+						% module.handle()
+						% (void*)((DWORD_PTR)module.handle() + nt_header.OptionalHeader.AddressOfEntryPoint)
+						% (nt_header.OptionalHeader.SizeOfImage / 1024.0)
+						% nt_header.OptionalHeader.CheckSum;
+					cout << endl;
+				}
+			}
+
 
 			if (vars.count("vs-debug-workaround"))
 			{

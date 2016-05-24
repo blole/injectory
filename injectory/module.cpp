@@ -1,4 +1,5 @@
 #include "injectory/module.hpp"
+#include "injectory/memoryarea.hpp"
 #include <Psapi.h>
 
 const Module& Module::exe()
@@ -17,7 +18,7 @@ const ModuleNtdll& Module::ntdll()
 	return m;
 }
 
-wstring Module::path() const
+fs::path Module::path() const
 {
 	WCHAR buffer[MAX_PATH + 1] = {0};
 	if (!GetModuleFileNameExW(process.handle(), handle(), buffer, MAX_PATH))
@@ -25,7 +26,7 @@ wstring Module::path() const
 		DWORD errcode = GetLastError();
 		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("GetModuleFileNameEx") << e_process(process) << e_last_error(errcode));
 	}
-	return wstring(buffer);
+	return buffer;
 }
 
 wstring Module::mappedFilename(bool throwOnFail) const
@@ -43,4 +44,14 @@ void Module::eject()
 {
 	PTHREAD_START_ROUTINE freeLibrary = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("FreeLibrary");
 	process.runInHiddenThread(freeLibrary, handle());
+}
+
+IMAGE_DOS_HEADER Module::dosHeader()
+{
+	return process.memory<IMAGE_DOS_HEADER>(handle());
+}
+
+IMAGE_NT_HEADERS Module::ntHeader()
+{
+	return process.memory<IMAGE_NT_HEADERS>((void*)((DWORD_PTR)handle() + dosHeader().e_lfanew));
 }

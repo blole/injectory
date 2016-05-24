@@ -139,7 +139,7 @@ MemoryArea Process::alloc(SIZE_T size, bool freeOnDestruction, DWORD allocationT
 	return MemoryArea::alloc(*this, size, freeOnDestruction, allocationType, protect, addressHint);
 }
 
-Module Process::inject(const Library& lib, const bool& verbose)
+Module Process::inject(const Library& lib)
 {
 	if (isInjected(lib))
 		BOOST_THROW_EXCEPTION(ex_injection() << e_text("library already in process") << e_library(lib.path()) << e_process(*this));
@@ -149,36 +149,10 @@ Module Process::inject(const Library& lib, const bool& verbose)
 	MemoryArea libFileRemote = alloc(libPathLen, true, MEM_COMMIT, PAGE_READWRITE);
 	libFileRemote.write((void*)(lib.path().c_str()));
 
-	DWORD exitCode = runInHiddenThread(loadLibraryW, libFileRemote.address());
 	PTHREAD_START_ROUTINE loadLibraryW = (PTHREAD_START_ROUTINE)Module::kernel32().getProcAddress("LoadLibraryW");
+	/*DWORD exitCode =*/ runInHiddenThread(loadLibraryW, libFileRemote.address());
 
-	if (Module module = isInjected(lib))
-	{
-		IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(module.handle());
-		void* nt_header_address = (void*)((DWORD_PTR)module.handle() + dos_header.e_lfanew);
-		IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address);
-
-		if (verbose)
-		{
-			wprintf(
-				L"Successfully injected (%s | PID: %d):\n\n"
-				L"  AllocationBase: 0x%p\n"
-				L"  EntryPoint:     0x%p\n"
-				L"  SizeOfImage:      %.1f kB\n"
-				L"  CheckSum:       0x%08x\n"
-				L"  ExitCodeThread: 0x%08x\n",
-				lib.ntFilename().c_str(),
-				id(),
-				module.handle(),
-				(LPVOID)((DWORD_PTR)module.handle() + nt_header.OptionalHeader.AddressOfEntryPoint),
-				nt_header.OptionalHeader.SizeOfImage / 1024.0,
-				nt_header.OptionalHeader.CheckSum,
-				exitCode);
-		}
-		return module;
-	}
-	else
-		return Module(); //injected successfully, but module access denied TODO: really? does this happen?
+	return isInjected(lib);
 }
 
 DWORD Process::runInHiddenThread(PTHREAD_START_ROUTINE startAddress, LPVOID parameter)
@@ -295,14 +269,9 @@ void Process::listModules()
 		if (ab == mem_basic_info.AllocationBase)
 			continue;
 
-		wstring ntMappedFileName = getInjected((HMODULE)mem_basic_info.AllocationBase).mappedFilename(false);
-
+		Module module = getInjected((HMODULE)mem_basic_info.AllocationBase);
+		wstring ntMappedFileName = module.mappedFilename(false);
 		if (!ntMappedFileName.empty())
-		{
-			IMAGE_DOS_HEADER dos_header = memory<IMAGE_DOS_HEADER>(mem_basic_info.AllocationBase);
-			void* nt_header_address = (void*)((DWORD_PTR)mem_basic_info.AllocationBase + dos_header.e_lfanew);
-			IMAGE_NT_HEADERS nt_header = memory<IMAGE_NT_HEADERS>(nt_header_address);
-			cout << format("0x%p, %.1f kB, ") % mem_basic_info.AllocationBase % (nt_header.OptionalHeader.SizeOfImage / 1024.0) << to_string(ntMappedFileName) << endl;
-		}
+			cout << format("0x%p, %.1f kB, ") % module.handle() % (module.ntHeader().OptionalHeader.SizeOfImage / 1024.0) << to_string(ntMappedFileName) << endl;
 	}
 }

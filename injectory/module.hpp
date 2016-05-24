@@ -31,21 +31,17 @@ public:
 		: Module(nullptr, Process())
 	{}
 
-	Module(const wstring& moduleName)
+	Module(const fs::path& moduleName)
 		: Module(GetModuleHandleW(moduleName.c_str()), Process::current)
 	{
 		if (!handle())
 		{
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("GetModuleHandle") << e_text("could not get handle to module '" + to_string(moduleName) + "'") << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("GetModuleHandle") << e_text("could not get handle to module '" + moduleName.string() + "'") << e_last_error(errcode));
 		}
 	}
 
-	Module(const string& moduleName)
-		: Module(to_wstring(moduleName))
-	{}
-
-	static Module load(const wstring& moduleName, DWORD flags = 0, bool freeOnDestruction = true, bool throwing = true)
+	static Module load(const fs::path& moduleName, DWORD flags = 0, bool freeOnDestruction = true, bool throwing = true)
 	{
 		HMODULE handle_ = LoadLibraryExW(moduleName.c_str(), nullptr, flags);
 		if (!handle_)
@@ -54,7 +50,7 @@ public:
 				return Module();
 
 			DWORD errcode = GetLastError();
-			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("LoadLibraryEx") << e_text("could not load module '" + to_string(moduleName) + "' locally") << e_last_error(errcode));
+			BOOST_THROW_EXCEPTION(ex_get_module_handle() << e_api_function("LoadLibraryEx") << e_text("could not load module '" + moduleName.string() + "' locally") << e_last_error(errcode));
 		}
 		Module module;
 		if (freeOnDestruction)
@@ -64,9 +60,12 @@ public:
 		return module;
 	}
 
-	wstring path() const;
+	fs::path path() const;
 	wstring mappedFilename(bool throwOnFail = true) const;
 	void eject();
+
+	IMAGE_DOS_HEADER dosHeader();
+	IMAGE_NT_HEADERS ntHeader();
 
 public:
 	FARPROC getProcAddress(string procName, bool throwing = true) const

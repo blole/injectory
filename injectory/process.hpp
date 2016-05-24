@@ -106,8 +106,8 @@ public: // memory
 
 
 public:
-	Module inject(const Library& lib, const bool& verbose = false);
-	void mapRemoteModule(const Library& lib, const bool& verbose = false);
+	Module inject(const Library& lib);
+	Module mapRemoteModule(const Library& lib);
 
 	void callTlsInitializers(HMODULE hModule, DWORD fdwReason, IMAGE_TLS_DIRECTORY& imgTlsDir);
 	void fixIAT(const boost::interprocess::mapped_region& imageBase, IMAGE_NT_HEADERS& nt_header, IMAGE_IMPORT_DESCRIPTOR* imgImpDesc);

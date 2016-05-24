@@ -18,14 +18,6 @@ public:
 			BOOST_THROW_EXCEPTION(ex_file_not_found() << e_library(path_));
 	}
 
-	Library(const char* path_)
-		: Library(fs::path(path_))
-	{}
-
-	Library(const wstring& path_)
-		: Library(fs::path(path_))
-	{}
-
 public:
 	const fs::path& path() const
 	{

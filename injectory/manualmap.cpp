@@ -240,21 +240,7 @@ Module Process::mapRemoteModule(const Library& lib)
 			(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header.OptionalHeader.AddressOfEntryPoint),
 			(HMODULE)moduleBase.address(), 1, nullptr);
 
-		if (verbose)
-		{
-			wprintf(
-				L"Successfully injected (%s | PID: %d):\n\n"
-				L"  AllocationBase: 0x%p\n"
-				L"  EntryPoint:     0x%p\n"
-				L"  SizeOfImage:      %.1f kB\n"
-				L"  CheckSum:       0x%08x\n",
-				lib.path().c_str(),
-				id(),
-				moduleBase.address(),
-				(LPVOID)((DWORD_PTR)moduleBase.address() + nt_header.OptionalHeader.AddressOfEntryPoint),
-				nt_header.OptionalHeader.SizeOfImage / 1024.0,
-				nt_header.OptionalHeader.CheckSum);
-		}
+		return isInjected((HMODULE)moduleBase.address());
 	}
 	catch (...)
 	{
