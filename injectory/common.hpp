@@ -52,7 +52,7 @@ namespace std
 	template <typename T>
 	inline string to_string(const vector<T>& v)
 	{
-		std::stringstream ss;
+		std::ostringstream ss;
 		ss << "[";
 		if (v.size() != 0)
 			ss << v[0];

@@ -1,6 +1,7 @@
 #include "injectory/exception.hpp"
 #include "injectory/process.hpp"
 #include "injectory/library.hpp"
+#include "injectory/api.hpp"
 #include <boost/algorithm/string/trim.hpp>
 #include <regex>
 #include <set>
@@ -21,7 +22,7 @@ string formatMessage(DWORD messageId, DWORD flags, LPCVOID source, DWORD languag
 	{
 		string message = std::to_string(buf);
 		boost::algorithm::trim(message);
-		LocalFree(buf);
+		LocalFree_Throwing(buf);
 		return message;
 	}
 	else

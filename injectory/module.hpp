@@ -102,8 +102,8 @@ private:
 
 	template <typename Ret, typename... Args>
 	struct TypeParser<Ret(Args...)> {
-		static std::function<Ret(Args...)> winapiFunction(const FARPROC lpfnGetProcessID) {
-			return std::function<Ret(Args...)>(reinterpret_cast<Ret(WINAPI *)(Args...)>(lpfnGetProcessID));
+		static function<Ret(Args...)> winapiFunction(const FARPROC lpfnGetProcessID) {
+			return function<Ret(Args...)>(reinterpret_cast<Ret(WINAPI *)(Args...)>(lpfnGetProcessID));
 		}
 	};
 

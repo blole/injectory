@@ -4,19 +4,29 @@
 #include "injectory/process.hpp"
 #include "injectory/module.hpp"
 #include "injectory/job.hpp"
+#include "injectory/flags.hpp"
 
 #include <boost/algorithm/string.hpp>
 namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "5.1.1-SNAPSHOT"
+#define VERSION "6.0.0-SNAPSHOT"
 
-template <typename T>
-po::typed_value<vector<T>, wchar_t>* wvector()
+namespace boost { namespace program_options
 {
-	return po::wvalue<vector<T>>()->multitoken()->default_value({}, "");
-}
+	template <typename T>
+	po::typed_value<std::vector<T>>* vector()
+	{
+		return po::value<std::vector<T>>()->multitoken()->default_value({}, "");
+	}
+
+	template <typename T>
+	po::typed_value<std::vector<T>, wchar_t>* wvector()
+	{
+		return po::wvalue<std::vector<T>>()->multitoken()->default_value({}, "");
+	}
+}}
 
 Process proc;
 
@@ -30,35 +40,38 @@ int main(int argc, char *argv[])
 		po::options_description options("Options");
 
 		targets.add_options()
-			("pid,p",		po::value<int>()->value_name("PID"),		"find process by id")
-			("procname,n",	po::wvalue<wstring>()->value_name("NAME"),	"find process by name")
-			("wndtitle,t",	po::wvalue<wstring>()->value_name("TITLE"),	"find process by window title")
-			("wndclass,c",	po::wvalue<wstring>()->value_name("CLASS"),	"find process by window class, can be combined with --wndtitle")
-			("launch,l",	po::wvalue<wstring>()->value_name("EXE"),	"launches the target in a new process")
+			("pid,p",		po::value<int>()->value_name("PID"),			"find process by id")
+			("procname,n",	po::wvalue<wstring>()->value_name("NAME"),		"find process by name")
+			("wndtitle,t",	po::wvalue<wstring>()->value_name("TITLE"),		"find process by window title")
+			("wndclass,c",	po::wvalue<wstring>()->value_name("CLASS"),		"find process by window class, can be combined with --wndtitle")
+			("launch,l",	po::wvalue<wstring>()->value_name("EXE"),		"launches the target in a new process")
 			("args,a",		po::wvalue<wstring>()->value_name("STRING")->default_value(L"", ""),
-																		"arguments for --launch:ed process")
+																			"arguments for --launch:ed process")
 		;
 		options.add_options()
-			("inject,i",	wvector<wstring>()->value_name("DLL..."),	"inject libraries before main")
-			("injectw,I",	wvector<wstring>()->value_name("DLL..."),	"inject libraries when input idle")
-			("map,m",		wvector<wstring>()->value_name("DLL..."),	"map file into target before main")
-			("mapw,M",		wvector<wstring>()->value_name("DLL..."),	"map file into target when input idle")
-			("eject,e",		wvector<wstring>()->value_name("DLL..."),	"eject libraries before main")
-			("ejectw,E",	wvector<wstring>()->value_name("DLL..."),	"eject libraries when input idle\n")
+			("inject,i",	po::wvector<wstring>()->value_name("DLL..."),	"inject libraries before main")
+			("injectw,I",	po::wvector<wstring>()->value_name("DLL..."),	"inject libraries when input idle")
+			("map,m",		po::wvector<wstring>()->value_name("DLL..."),	"map file into target before main")
+			("mapw,M",		po::wvector<wstring>()->value_name("DLL..."),	"map file into target when input idle")
+			("eject,e",		po::wvector<wstring>()->value_name("DLL..."),	"eject libraries before main")
+			("ejectw,E",	po::wvector<wstring>()->value_name("DLL..."),	"eject libraries when input idle")
+			//("set-flags",   po::value<std::vector<string>>()->multitoken()->default_value({}, "")->value_name("FLAG..."), "see --list-flags")
+			("set-flags",	po::vector<string>()->value_name("FLAG..."),	"see --list-flags")
+			("unset-flags",	po::vector<string>()->value_name("FLAG..."),	"see --list-flags\n")
 
-			("print-own-pid",											"print the pid of this process")
-			("print-pid",												"print the pid of the target process")
-			("rethrow",													"rethrow exceptions")
-			("vs-debug-workaround",									  	"workaround for threads left suspended when debugging with"
-																		" visual studio by resuming all threads for 2 seconds")
+			("print-own-pid",												"print the pid of this process")
+			("print-pid",													"print the pid of the target process")
+			("rethrow",														"rethrow exceptions")
+			("vs-debug-workaround",									  		"workaround for threads left suspended when debugging with"
+																			" visual studio by resuming all threads for 2 seconds")
 
-			("dbgpriv",												  	"set SeDebugPrivilege")
-			("wait-for-exit",											"wait for the target to exit before exiting")
-			("kill-on-exit",											"kill the target when exiting\n")
+			("wait-for-exit",												"wait for the target to exit before exiting")
+			("kill-on-exit",												"kill the target when exiting\n")
 
-			("verbose,v",												"")
-			("version",													"display version information and exit")
-			("help",													"display help message and exit")
+			("verbose,v",													"")
+			("list-flags",													"list supported flags and exit")
+			("version",														"display version information and exit")
+			("help",														"display help message and exit")
 			//("Address of library (ejection)")
 			//("a process (without calling LoadLibrary)")
 			//("listmodules",									"dump modules associated with the specified process id")
@@ -88,11 +101,32 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 
+		if (vars.count("list-flags"))
+		{
+			cout << "  supported flags:" << endl;
+			for (auto const &entry : Flags::all)
+				cout << entry.first << endl;
+			return 0;
+		}
+
 		if (vars.count("print-own-pid"))
 			cout << Process::current.id() << endl;
 
-		if (vars.count("dbgpriv"))
-			Process::current.enablePrivilege(L"SeDebugPrivilege");
+		for (const string& flag : vars["set-flags"].as<vector<string>>())
+		{
+			if (Flags::all.count(flag))
+				Flags::all[flag]->enable();
+			else
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag"));
+		}
+
+		for (const string& flag : vars["unset-flags"].as<vector<string>>())
+		{
+			if (Flags::all.count(flag))
+				Flags::all[flag]->disable();
+			else
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag"));
+		}
 
 		if (vars.count("pid"))
 		{

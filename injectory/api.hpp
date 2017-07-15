@@ -70,3 +70,11 @@ inline HANDLE GetStdHandle_Throwing(DWORD nStdHandle)
 	return h;
 }
 
+inline void LocalFree_Throwing(HLOCAL hMem)
+{
+	if (LocalFree(hMem))
+	{
+		DWORD errcode = GetLastError();
+		BOOST_THROW_EXCEPTION(ex("error freeing local memory") << e_api_function("LocalFree") << e_last_error(errcode));
+	}
+}
