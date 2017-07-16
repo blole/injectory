@@ -31,6 +31,8 @@ Options:
   -M [ --mapw ] DLL...     map file into target when input idle
   -e [ --eject ] DLL...    eject libraries before main
   -E [ --ejectw ] DLL...   eject libraries when input idle
+  --set-flags FLAG...      see --list-flags
+  --unset-flags FLAG...    see --list-flags
 
   --print-own-pid          print the pid of this process
   --print-pid              print the pid of the target process
@@ -38,11 +40,11 @@ Options:
   --vs-debug-workaround    workaround for threads left suspended when debugging
                            with visual studio by resuming all threads for 2
                            seconds
-  --dbgpriv                set SeDebugPrivilege
   --wait-for-exit          wait for the target to exit before exiting
   --kill-on-exit           kill the target when exiting
 
   -v [ --verbose ]
+  --list-flags             list supported flags and exit
   --version                display version information and exit
   --help                   display help message and exit
 ```
