@@ -103,29 +103,38 @@ int main(int argc, char *argv[])
 
 		if (vars.count("list-flags"))
 		{
-			cout << "  supported flags:" << endl;
-			for (auto const &entry : Flags::all)
-				cout << entry.first << endl;
+			// group by Flag.group
+			std::map<string, vector<Flag*>> groups;
+			for (auto const& entry : Flags::all)
+				groups[entry.second->group].push_back(entry.second);
+			
+			for (auto const& entry : groups)
+			{
+				const string& groupName = entry.first;
+				cout << endl << "  --" << groupName << " flags--" << endl;
+				for (Flag* flag : entry.second)
+					cout << flag->name << endl;
+			}
+
 			return 0;
 		}
 
 		if (vars.count("print-own-pid"))
 			cout << Process::current.id() << endl;
 
-		for (const string& flag : vars["set-flags"].as<vector<string>>())
+		for (const string& flagName : vars["set-flags"].as<vector<string>>())
 		{
-			if (Flags::all.count(flag))
-				Flags::all[flag]->enable();
+			if (Flags::all.count(flagName))
+				Flags::all[flagName]->enable();
 			else
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag"));
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag '" + flagName + "'"));
 		}
-
-		for (const string& flag : vars["unset-flags"].as<vector<string>>())
+		for (const string& flagName : vars["unset-flags"].as<vector<string>>())
 		{
-			if (Flags::all.count(flag))
-				Flags::all[flag]->disable();
+			if (Flags::all.count(flagName))
+				Flags::all[flagName]->disable();
 			else
-				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag"));
+				BOOST_THROW_EXCEPTION(ex_injection() << e_text("unknown flag '" + flagName + "'"));
 		}
 
 		if (vars.count("pid"))

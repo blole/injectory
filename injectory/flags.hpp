@@ -19,9 +19,11 @@ class Flag
 {
 public:
 	const string name;
+	const string group;
 
-	Flag(string name)
+	Flag(string name, string group)
 		: name(name)
+		, group(group)
 	{
 		Flags::all[this->name] = this;
 	}
@@ -38,14 +40,14 @@ public:
 	const function<void()> enableFunction;
 	const function<void()> disableFunction;
 
-	LambdaFlag(string name, function<void()> enableFunction, function<void()> disableFunction)
-		: Flag(name)
+	LambdaFlag(string name, string group, function<void()> enableFunction, function<void()> disableFunction)
+		: Flag(name, group)
 		, enableFunction(enableFunction)
 		, disableFunction(disableFunction)
 	{}
 
-	LambdaFlag(string name, function<void(bool)> setFunction)
-		: LambdaFlag(name, std::bind(setFunction, true), std::bind(setFunction, false))
+	LambdaFlag(string name, string group, function<void(bool)> setFunction)
+		: LambdaFlag(name, group, std::bind(setFunction, true), std::bind(setFunction, false))
 	{}
 
 	void enable() const override
@@ -61,13 +63,33 @@ public:
 
 
 
+class PrivilegeFlag : public Flag
+{
+public:
+	PrivilegeFlag(string name)
+		: Flag(name, "privilege")
+	{}
+
+	void enable() const override
+	{
+		Process::current.enablePrivilege(to_wstring(name), true);
+	}
+
+	void disable() const override
+	{
+		Process::current.enablePrivilege(to_wstring(name), false);
+	}
+};
+
+
+
 class ErrorModeFlag : public Flag
 {
 public:
 	const UINT mode;
 
 	ErrorModeFlag(string name, UINT mode)
-		: Flag(name)
+		: Flag(name, "error mode")
 		, mode(mode)
 	{}
 
@@ -90,7 +112,41 @@ public:
 
 namespace Flags
 {
-	const LambdaFlag SeDebugPrivilege("SeDebugPrivilege", [](bool enable) {Process::current.enablePrivilege(L"SeDebugPrivilege", enable);});
+	const PrivilegeFlag SeCreateTokenPrivilege			("SeCreateTokenPrivilege");
+	const PrivilegeFlag SeAssignPrimaryTokenPrivilege	("SeAssignPrimaryTokenPrivilege");
+	const PrivilegeFlag SeLockMemoryPrivilege			("SeLockMemoryPrivilege");
+	const PrivilegeFlag SeIncreaseQuotaPrivilege		("SeIncreaseQuotaPrivilege");
+	const PrivilegeFlag SeUnsolicitedInputPrivilege		("SeUnsolicitedInputPrivilege");
+	const PrivilegeFlag SeMachineAccountPrivilege		("SeMachineAccountPrivilege");
+	const PrivilegeFlag SeTcbPrivilege					("SeTcbPrivilege");
+	const PrivilegeFlag SeSecurityPrivilege				("SeSecurityPrivilege");
+	const PrivilegeFlag SeTakeOwnershipPrivilege		("SeTakeOwnershipPrivilege");
+	const PrivilegeFlag SeLoadDriverPrivilege			("SeLoadDriverPrivilege");
+	const PrivilegeFlag SeSystemProfilePrivilege		("SeSystemProfilePrivilege");
+	const PrivilegeFlag SeSystemtimePrivilege			("SeSystemtimePrivilege");
+	const PrivilegeFlag SeProfileSingleProcessPrivilege	("SeProfileSingleProcessPrivilege");
+	const PrivilegeFlag SeIncreaseBasePriorityPrivilege	("SeIncreaseBasePriorityPrivilege");
+	const PrivilegeFlag SeCreatePagefilePrivilege		("SeCreatePagefilePrivilege");
+	const PrivilegeFlag SeCreatePermanentPrivilege		("SeCreatePermanentPrivilege");
+	const PrivilegeFlag SeBackupPrivilege				("SeBackupPrivilege");
+	const PrivilegeFlag SeRestorePrivilege				("SeRestorePrivilege");
+	const PrivilegeFlag SeShutdownPrivilege				("SeShutdownPrivilege");
+	const PrivilegeFlag SeDebugPrivilege				("SeDebugPrivilege");
+	const PrivilegeFlag SeAuditPrivilege				("SeAuditPrivilege");
+	const PrivilegeFlag SeSystemEnvironmentPrivilege	("SeSystemEnvironmentPrivilege");
+	const PrivilegeFlag SeChangeNotifyPrivilege			("SeChangeNotifyPrivilege");
+	const PrivilegeFlag SeRemoteShutdownPrivilege		("SeRemoteShutdownPrivilege");
+	const PrivilegeFlag SeUndockPrivilege				("SeUndockPrivilege");
+	const PrivilegeFlag SeSyncAgentPrivilege			("SeSyncAgentPrivilege");
+	const PrivilegeFlag SeEnableDelegationPrivilege		("SeEnableDelegationPrivilege");
+	const PrivilegeFlag SeManageVolumePrivilege			("SeManageVolumePrivilege");
+	const PrivilegeFlag SeImpersonatePrivilege			("SeImpersonatePrivilege");
+	const PrivilegeFlag SeCreateGlobalPrivilege			("SeCreateGlobalPrivilege");
+	const PrivilegeFlag SeTrustedCredManAccessPrivilege	("SeTrustedCredManAccessPrivilege");
+	const PrivilegeFlag SeRelabelPrivilege				("SeRelabelPrivilege");
+	const PrivilegeFlag SeIncreaseWorkingSetPrivilege	("SeIncreaseWorkingSetPrivilege");
+	const PrivilegeFlag SeTimeZonePrivilege				("SeTimeZonePrivilege");
+	const PrivilegeFlag SeCreateSymbolicLinkPrivilege	("SeCreateSymbolicLinkPrivilege");
 
 	const ErrorModeFlag SEM_FAILCRITICALERRORS_		("SEM_FAILCRITICALERRORS",		SEM_FAILCRITICALERRORS);
 	const ErrorModeFlag SEM_NOALIGNMENTFAULTEXCEPT_	("SEM_NOALIGNMENTFAULTEXCEPT",	SEM_NOALIGNMENTFAULTEXCEPT);
