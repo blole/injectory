@@ -11,7 +11,7 @@ namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "6.0.0-SNAPSHOT"
+#define VERSION "6.0.0"
 
 namespace boost { namespace program_options
 {
