@@ -64,7 +64,6 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\debug-starcraft-bot.props" />
     <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -76,7 +75,6 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="..\packages\builddir.3.2.1\tools\builddir.props" Condition="exists('..\packages\builddir.3.2.1\tools\builddir.props')" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\debug-starcraft-bot.props" />
     <Import Project="..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props" Condition="exists('..\packages\bloles-defaults.1.0.1\tools\bloles-defaults.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
