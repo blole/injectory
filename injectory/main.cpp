@@ -11,7 +11,7 @@ namespace algo = boost::algorithm;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VERSION "6.0.0"
+#define VERSION "6.0.1-SNAPSHOT"
 
 namespace boost { namespace program_options
 {
@@ -55,7 +55,6 @@ int main(int argc, char *argv[])
 			("mapw,M",		po::wvector<wstring>()->value_name("DLL..."),	"map file into target when input idle")
 			("eject,e",		po::wvector<wstring>()->value_name("DLL..."),	"eject libraries before main")
 			("ejectw,E",	po::wvector<wstring>()->value_name("DLL..."),	"eject libraries when input idle")
-			//("set-flags",   po::value<std::vector<string>>()->multitoken()->default_value({}, "")->value_name("FLAG..."), "see --list-flags")
 			("set-flags",	po::vector<string>()->value_name("FLAG..."),	"see --list-flags")
 			("unset-flags",	po::vector<string>()->value_name("FLAG..."),	"see --list-flags\n")
 
@@ -105,14 +104,14 @@ int main(int argc, char *argv[])
 		{
 			// group by Flag.group
 			std::map<string, vector<Flag*>> groups;
-			for (auto const& entry : Flags::all)
-				groups[entry.second->group].push_back(entry.second);
+			for (const auto& [_, flag] : Flags::all)
+				groups[flag->group].push_back(flag);
 			
-			for (auto const& entry : groups)
+			// print all group names and flags in each group
+			for (const auto& [groupName, groupFlags] : groups)
 			{
-				const string& groupName = entry.first;
 				cout << endl << "  --" << groupName << " flags--" << endl;
-				for (Flag* flag : entry.second)
+				for (Flag* flag : groupFlags)
 					cout << flag->name << endl;
 			}
 

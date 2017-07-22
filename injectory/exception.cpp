@@ -48,7 +48,7 @@ string GetNTStatusString(DWORD nt_status)
 optional<string> try_get_process_name(const Process& proc)
 {
 	try { return proc.path().filename().string(); }
-	catch (...) { return boost::none; }
+	catch (...) { return {}; }
 }
 
 
@@ -96,7 +96,7 @@ optional<string> throw_location(const boost::exception& be)
 
 	string s = ss.str();
 	if (s.empty())
-		return boost::none;
+		return {};
 	else
 		return s;
 }
@@ -140,13 +140,10 @@ string diagnostic_information(const boost::exception& be)
 	if (auto* info_ = get_error_info_map(be))
 	{
 		std::ostringstream ss;
-		for (auto& kv : *info_)
+		for (const auto& [k, v] : *info_)
 		{
-			auto& k = kv.first;
-			auto& v = *kv.second;
-
 			if (non_printing_error_types.find(k) == non_printing_error_types.end())
-				ss << v.name_value_string();
+				ss << v->name_value_string();
 		}
 		return ss.str();
 	}
