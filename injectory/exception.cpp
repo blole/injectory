@@ -103,7 +103,7 @@ optional<string> throw_location(const boost::exception& be)
 
 
 
-typedef std::map<boost::exception_detail::type_info_, shared_ptr<boost::exception_detail::error_info_base>> error_info_map;
+typedef map<boost::exception_detail::type_info_, shared_ptr<boost::exception_detail::error_info_base>> error_info_map;
 
 namespace
 {
@@ -140,7 +140,7 @@ string diagnostic_information(const boost::exception& be)
 	if (auto* info_ = get_error_info_map(be))
 	{
 		std::ostringstream ss;
-		for (const auto& [k, v] : *info_)
+		for (const auto&[k, v] : *info_)
 		{
 			if (non_printing_error_types.find(k) == non_printing_error_types.end())
 				ss << v->name_value_string();

@@ -21,8 +21,8 @@ Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 }
 
 ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
-	optional<const vector<string>&> env,
-	optional<const wstring&> cwd,
+	optional<std::map<string,string>> env,
+	optional<wstring> cwd,
 	bool inheritHandles, DWORD creationFlags,
 	SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 	STARTUPINFOW startupInfo)
@@ -31,8 +31,17 @@ ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 	PROCESS_INFORMATION pi = {};
 	wstring commandLine = app.wstring() + L" " + args;
 
+
+	string envstring;
+	if (env)
+	{
+		for (const auto&[k, v] : *env)
+			envstring += k + '=' + v + '\0';
+		envstring += '\0';
+	}
+
 	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles,
-			creationFlags, nullptr, nullptr, &startupInfo, &pi))
+			creationFlags, env?(void*)envstring.c_str():nullptr, cwd?cwd->c_str():nullptr, &startupInfo, &pi))
 	{
 		DWORD errcode = GetLastError();
 		BOOST_THROW_EXCEPTION(ex_injection() << e_api_function("CreateProcess") << e_last_error(errcode) << e_file(app));

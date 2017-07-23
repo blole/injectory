@@ -206,8 +206,8 @@ public:
 	// Creates a new process and its primary thread.
 	// The new process runs in the security context of the calling process.
 	static ProcessWithThread launch(const fs::path& app, const wstring& args = L"",
-		optional<const vector<string>&> env = boost::none,
-		optional<const wstring&> cwd = boost::none,
+		optional<std::map<string, string>> env = {},
+		optional<wstring> cwd = {},
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,
 		STARTUPINFOW startupInfo = {});

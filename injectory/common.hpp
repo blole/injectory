@@ -3,8 +3,9 @@
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-#include <boost/optional.hpp>
-using boost::optional;
+#include <optional>
+using std::optional;
+using std::nullopt;
 #include <boost/format.hpp>
 using boost::format;
 
@@ -16,6 +17,10 @@ using std::string;
 using std::wstring;
 #include <vector>
 using std::vector;
+#include <map>
+using std::map;
+#include <unordered_map>
+using std::unordered_map;
 #include <iostream>
 using std::cout;
 using std::cerr;
