@@ -29,8 +29,7 @@ ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 {
 	startupInfo.cb = sizeof(STARTUPINFOW); // needed
 	PROCESS_INFORMATION pi = {};
-	wstring commandLine = app.wstring() + L" " + args;
-
+	wstring commandLine = L'"' + app.wstring() + L"\" " + args;
 
 	wstring envstring;
 	if (env)
