@@ -3,6 +3,7 @@
 #include "injectory/exception.hpp"
 #include "injectory/thread.hpp"
 #include "injectory/winhandle.hpp"
+#include "injectory/environment.hpp"
 #include <boost/interprocess/mapped_region.hpp>
 #include <winnt.h>
 #include <Psapi.h>
@@ -206,7 +207,7 @@ public:
 	// Creates a new process and its primary thread.
 	// The new process runs in the security context of the calling process.
 	static ProcessWithThread launch(const fs::path& app, const wstring& args = L"",
-		optional<std::map<string, string>> env = {},
+		optional<Environment> env = {},
 		optional<wstring> cwd = {},
 		bool inheritHandles = false, DWORD creationFlags = 0,
 		SECURITY_ATTRIBUTES* processAttributes = nullptr, SECURITY_ATTRIBUTES* threadAttributes = nullptr,

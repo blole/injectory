@@ -76,6 +76,9 @@
     <ClInclude Include="flags.hpp">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="environment.hpp">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

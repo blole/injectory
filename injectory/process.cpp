@@ -21,7 +21,7 @@ Process Process::open(const pid_t& pid, bool inheritHandle, DWORD desiredAccess)
 }
 
 ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
-	optional<std::map<string,string>> env,
+	optional<Environment> env,
 	optional<wstring> cwd,
 	bool inheritHandles, DWORD creationFlags,
 	SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
@@ -32,13 +32,14 @@ ProcessWithThread Process::launch(const fs::path& app, const wstring& args,
 	wstring commandLine = app.wstring() + L" " + args;
 
 
-	string envstring;
+	wstring envstring;
 	if (env)
 	{
 		for (const auto&[k, v] : *env)
-			envstring += k + '=' + v + '\0';
-		envstring += '\0';
+			envstring += k + L'=' + v + L'\0';
+		envstring += L'\0';
 	}
+	creationFlags |= CREATE_UNICODE_ENVIRONMENT;
 
 	if (!CreateProcessW(app.c_str(), &commandLine[0], processAttributes, threadAttributes, inheritHandles,
 			creationFlags, env?(void*)envstring.c_str():nullptr, cwd?cwd->c_str():nullptr, &startupInfo, &pi))
